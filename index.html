@@ -227,6 +227,25 @@
     box-shadow: none;
   }
   .cal-cell.no-events .day-num { color: var(--muted); font-weight: 400; }
+  .cal-cell.addable {
+    cursor: pointer;
+    background: var(--bg-soft);
+    border: 1.5px dashed var(--line);
+  }
+  .cal-cell.addable:active {
+    background: var(--accent-soft);
+    transform: scale(0.97);
+  }
+  .cal-cell.addable .day-num { color: var(--muted); font-weight: 500; }
+  .cal-cell.addable::after {
+    content: "+";
+    position: absolute;
+    bottom: 4px; right: 6px;
+    color: var(--accent);
+    font-size: 14px;
+    font-weight: 600;
+    opacity: 0.6;
+  }
   .cal-cell.has-events:active {
     transform: scale(0.96);
     background: var(--line-soft);
@@ -541,9 +560,13 @@
   }
 
   /* ─── Import modal ─── */
-  .import-toggle {
+  .header-toggles {
     position: absolute;
-    top: 10px; right: 14px;
+    top: 8px; right: 12px;
+    display: flex;
+    gap: 6px;
+  }
+  .header-toggles button {
     background: var(--card);
     border: 1.5px solid var(--accent-soft);
     border-radius: 999px;
@@ -554,9 +577,204 @@
     font-family: inherit;
     box-shadow: var(--shadow-soft);
     display: none;
+    font-weight: 500;
   }
+  .header-toggles button.visible { display: inline-block; }
+  .header-toggles button:active { background: var(--accent-soft); }
+  .header-toggles button.news-btn { color: var(--accent); }
+  .header-toggles button.news-btn.has-new {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+
+  /* legacy alias for import-toggle (keep working) */
+  .import-toggle { display: none; }
   .import-toggle.visible { display: inline-block; }
-  .import-toggle:active { background: var(--accent-soft); }
+
+  /* Add-event sheet specific */
+  .add-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .add-form .field-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .add-form label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 500;
+  }
+  .add-form input[type="date"],
+  .add-form input[type="time"],
+  .add-form input[type="text"],
+  .add-form select,
+  .add-form textarea {
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 14px;
+    font-family: inherit;
+    background: var(--card);
+    color: var(--fg);
+  }
+  .add-form input:focus,
+  .add-form select:focus,
+  .add-form textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .add-form .time-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 6px;
+    align-items: center;
+  }
+  .add-form .time-row span { color: var(--muted); text-align: center; }
+  .add-form textarea { resize: vertical; min-height: 40px; }
+
+  .template-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+  }
+  .template-chip {
+    background: var(--bg-soft);
+    border: 1.5px solid var(--line);
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-size: 12px;
+    color: var(--fg);
+    cursor: pointer;
+    font-family: inherit;
+    border-left: 4px solid var(--studio-color, var(--accent));
+    padding-left: 10px;
+  }
+  .template-chip:active {
+    background: var(--accent-soft);
+    transform: scale(0.97);
+  }
+  .template-manage-link {
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--accent-deep);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+  }
+
+  /* Template management sheet */
+  .tpl-list { margin: 10px 0; }
+  .tpl-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    gap: 6px;
+    margin-bottom: 6px;
+    align-items: center;
+    background: var(--card);
+    border: 1.5px solid var(--line);
+    border-left: 4px solid var(--studio-color, var(--accent));
+    border-radius: 10px;
+    padding: 8px;
+  }
+  .tpl-row input,
+  .tpl-row select {
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 12px;
+    font-family: inherit;
+    background: var(--card);
+  }
+  .tpl-row .tpl-del {
+    background: none;
+    border: 1.5px solid var(--line);
+    color: #c92a2a;
+    border-radius: 50%;
+    width: 28px; height: 28px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: inherit;
+  }
+  .tpl-add-btn {
+    width: 100%;
+    background: var(--card);
+    border: 1.5px dashed var(--accent);
+    border-radius: 10px;
+    padding: 8px;
+    color: var(--accent-deep);
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    margin-bottom: 12px;
+  }
+
+  /* News / history sheet */
+  .news-list { margin: 10px 0; }
+  .news-item {
+    background: var(--card);
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 6px;
+  }
+  .news-item .news-ts {
+    font-size: 11px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .news-item .news-summary {
+    font-size: 13px;
+    color: var(--fg);
+    margin-top: 4px;
+  }
+  .news-item .news-jump {
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--accent-deep);
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    font-family: inherit;
+  }
+  .news-empty {
+    color: var(--muted);
+    text-align: center;
+    padding: 24px 0;
+    font-size: 13px;
+  }
+
+  /* New-change banner */
+  .news-banner {
+    background: linear-gradient(135deg, #fff5f7 0%, var(--accent-soft) 100%);
+    border-bottom: 1.5px solid var(--accent);
+    padding: 8px 14px;
+    font-size: 12px;
+    color: var(--accent-deep);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    font-family: inherit;
+    width: 100%;
+    border-left: none; border-right: none; border-top: none;
+  }
+  .news-banner:active { background: var(--accent-soft); }
+  .news-banner-text { font-weight: 500; }
+  .news-banner-arrow { color: var(--accent); }
 
   .import-input-area {
     margin: 10px 0;
@@ -849,7 +1067,11 @@
 
 <header class="app-head">
   <div class="app-title">バレエスタジオ予定表</div>
-  <button class="import-toggle" id="import-toggle" aria-label="取り込み">取り込み</button>
+  <div class="header-toggles">
+    <button class="news-btn" id="news-toggle" aria-label="おしらせ">おしらせ</button>
+    <button id="add-toggle" aria-label="追加">+ 追加</button>
+    <button class="import-toggle" id="import-toggle" aria-label="取り込み">取り込み</button>
+  </div>
   <div class="month-nav">
     <button id="prev-month" aria-label="前の月">◀</button>
     <div class="month-current">
@@ -859,6 +1081,7 @@
     <button id="next-month" aria-label="次の月">▶</button>
   </div>
 </header>
+<div id="news-banner" hidden></div>
 
 <section class="filters">
   <details>
@@ -914,6 +1137,86 @@
   <div class="sheet-handle"></div>
   <button class="sheet-close" id="sheet-close" aria-label="閉じる">✕</button>
   <div id="sheet-content"></div>
+</div>
+
+<!-- Add-event modal -->
+<div class="sheet-backdrop" id="add-backdrop"></div>
+<div class="sheet" id="add-sheet" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="sheet-handle"></div>
+  <button class="sheet-close" id="add-close" aria-label="閉じる">✕</button>
+  <div class="sheet-day-head">
+    <div class="sheet-day-num"><span>予定の追加</span></div>
+    <div class="sheet-day-summary">単発の予定を 0 から登録</div>
+  </div>
+  <div class="add-form">
+    <div class="field-row">
+      <label>日付</label>
+      <input type="date" id="add-date">
+    </div>
+    <div class="field-row">
+      <label>時刻</label>
+      <div class="time-row">
+        <input type="time" id="add-start" value="13:00">
+        <span>〜</span>
+        <input type="time" id="add-end" value="14:00">
+      </div>
+    </div>
+    <div class="field-row">
+      <label>演目 / クラス名 (テンプレートから選択 or 直接入力)</label>
+      <input type="text" id="add-label" placeholder="例: 海賊、 合同クラス">
+      <div class="template-grid" id="add-templates"></div>
+      <button class="template-manage-link" id="open-tpl-manage" type="button">▸ テンプレートを編集 / 追加</button>
+    </div>
+    <div class="field-row">
+      <label>スタジオ</label>
+      <select id="add-studio"></select>
+    </div>
+    <div class="field-row">
+      <label>種別</label>
+      <select id="add-type"></select>
+    </div>
+    <div class="field-row">
+      <label>メモ (任意)</label>
+      <textarea id="add-note" rows="2" placeholder="例: 海賊小姓 14:30〜 join"></textarea>
+    </div>
+  </div>
+  <div id="add-status"></div>
+  <div class="edit-actions">
+    <button id="add-cancel">キャンセル</button>
+    <button id="add-save" class="primary">追加して保存</button>
+  </div>
+</div>
+
+<!-- Template management modal -->
+<div class="sheet-backdrop" id="tpl-backdrop"></div>
+<div class="sheet" id="tpl-sheet" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="sheet-handle"></div>
+  <button class="sheet-close" id="tpl-close" aria-label="閉じる">✕</button>
+  <div class="sheet-day-head">
+    <div class="sheet-day-num"><span>テンプレート</span></div>
+    <div class="sheet-day-summary">「追加」 画面の演目リストを編集</div>
+  </div>
+  <div class="tpl-list" id="tpl-list"></div>
+  <button class="tpl-add-btn" id="tpl-add-row">+ テンプレートを追加</button>
+  <div id="tpl-status"></div>
+  <div class="edit-actions">
+    <button id="tpl-cancel">キャンセル</button>
+    <button id="tpl-save" class="primary">保存</button>
+  </div>
+</div>
+
+<!-- News / history modal -->
+<div class="sheet-backdrop" id="news-backdrop"></div>
+<div class="sheet" id="news-sheet" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="sheet-handle"></div>
+  <button class="sheet-close" id="news-close" aria-label="閉じる">✕</button>
+  <div class="sheet-day-head">
+    <div class="sheet-day-num"><span>おしらせ</span></div>
+    <div class="sheet-day-summary">最近の変更履歴 (最新 100 件)</div>
+  </div>
+  <div class="news-list" id="news-list">
+    <div class="news-empty">読み込み中…</div>
+  </div>
 </div>
 
 <!-- Import modal (simplified for non-tech users) -->
@@ -1010,10 +1313,15 @@ async function bootstrap() {
     bindMonthNav();
     bindSwipe();
     bindImportModal();
+    bindAddModal();
+    bindTplModal();
+    bindNewsModal();
     renderCalendarHeads();
 
     const initialMonth = pickInitialMonth();
     await loadMonth(initialMonth);
+    // Check for new changes after the initial month is loaded
+    checkNewChanges();
   } catch (e) {
     document.getElementById('month-label').textContent = '読み込みエラー';
     console.error(e);
@@ -1364,7 +1672,15 @@ function renderCalendar() {
       }
     }
 
+    // Tap to open day sheet
+    // - With events: anyone can tap (view mode)
+    // - Without events: only those with upload key (edit mode)
     if (visible.length > 0) {
+      cell.addEventListener('click', () => openDaySheet(date));
+    } else if (getUploadKey() && API_BASE_URL) {
+      cell.style.cursor = 'pointer';
+      cell.classList.remove('no-events');
+      cell.classList.add('addable');
       cell.addEventListener('click', () => openDaySheet(date));
     }
     root.appendChild(cell);
@@ -1599,11 +1915,487 @@ function bindSheet() {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeSheet();
   });
+  bindSwipeToDismiss(document.getElementById('sheet'), closeSheet);
+}
+
+function bindSwipeToDismiss(sheet, closeCb) {
+  let startY = 0;
+  let currentY = 0;
+  let dragging = false;
+  let originalTransition = '';
+
+  // Mobile only (PC は中央配置 + translate(-50%, 0) なのでスワイプ非対応)
+  const isMobileLayout = () => window.matchMedia('(max-width: 599px)').matches;
+
+  sheet.addEventListener('touchstart', (e) => {
+    if (!isMobileLayout()) return;
+    if (sheet.scrollTop > 0) return;          // content scrolling
+    if (e.touches.length !== 1) return;
+    startY = e.touches[0].clientY;
+    currentY = startY;
+    dragging = true;
+    originalTransition = sheet.style.transition;
+    sheet.style.transition = 'none';
+  }, { passive: true });
+
+  sheet.addEventListener('touchmove', (e) => {
+    if (!dragging) return;
+    currentY = e.touches[0].clientY;
+    const dy = currentY - startY;
+    if (dy > 0) {
+      sheet.style.transform = `translateY(${dy}px)`;
+    } else {
+      sheet.style.transform = '';
+    }
+  }, { passive: true });
+
+  sheet.addEventListener('touchend', () => {
+    if (!dragging) return;
+    dragging = false;
+    sheet.style.transition = originalTransition;
+    sheet.style.transform = '';
+    if (currentY - startY > 80) closeCb();
+  });
+
+  sheet.addEventListener('touchcancel', () => {
+    if (!dragging) return;
+    dragging = false;
+    sheet.style.transition = originalTransition;
+    sheet.style.transform = '';
+  });
 }
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c =>
     ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
+/* ────────────────────────────────────────────────────────
+ * Add-event modal, templates, news (history), banner
+ * ──────────────────────────────────────────────────────── */
+
+let TEMPLATES_CACHE = null;
+let TPL_EDIT_DRAFT = null;
+
+async function fetchTemplates() {
+  if (!API_BASE_URL) {
+    TEMPLATES_CACHE = { items: [] };
+    return TEMPLATES_CACHE;
+  }
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/templates`, { cache: 'no-store' });
+    if (res.ok) {
+      TEMPLATES_CACHE = await res.json();
+    } else {
+      TEMPLATES_CACHE = { items: [] };
+    }
+  } catch (e) {
+    TEMPLATES_CACHE = { items: [] };
+  }
+  return TEMPLATES_CACHE;
+}
+
+function bindAddModal() {
+  document.getElementById('add-toggle').addEventListener('click', openAddSheet);
+  document.getElementById('add-close').addEventListener('click', closeAddSheet);
+  document.getElementById('add-backdrop').addEventListener('click', closeAddSheet);
+  document.getElementById('add-cancel').addEventListener('click', closeAddSheet);
+  document.getElementById('add-save').addEventListener('click', saveAddedEvent);
+  document.getElementById('open-tpl-manage').addEventListener('click', openTplSheet);
+  bindSwipeToDismiss(document.getElementById('add-sheet'), closeAddSheet);
+
+  // populate selects
+  const studioSel = document.getElementById('add-studio');
+  studioSel.innerHTML = '';
+  for (const [k, v] of Object.entries(META.studios)) {
+    const opt = document.createElement('option');
+    opt.value = k;
+    opt.textContent = v.name;
+    studioSel.appendChild(opt);
+  }
+  const typeSel = document.getElementById('add-type');
+  typeSel.innerHTML = '';
+  for (const [k, v] of Object.entries(META.types)) {
+    const opt = document.createElement('option');
+    opt.value = k;
+    opt.textContent = v.symbol + ' ' + v.name;
+    typeSel.appendChild(opt);
+  }
+}
+
+async function openAddSheet() {
+  // Default date = today if in current month, else 1st of current month
+  const today = new Date();
+  const [cy, cm] = CURRENT_MONTH.split('-').map(Number);
+  const dateInput = document.getElementById('add-date');
+  if (today.getFullYear() === cy && today.getMonth() + 1 === cm) {
+    dateInput.value = isoLocal(today);
+  } else {
+    dateInput.value = `${CURRENT_MONTH}-01`;
+  }
+  dateInput.min = `${CURRENT_MONTH}-01`;
+  const lastDay = new Date(cy, cm, 0).getDate();
+  dateInput.max = `${CURRENT_MONTH}-${String(lastDay).padStart(2,'0')}`;
+
+  document.getElementById('add-start').value = '13:00';
+  document.getElementById('add-end').value = '14:00';
+  document.getElementById('add-label').value = '';
+  document.getElementById('add-studio').value = 'kawagoe';
+  document.getElementById('add-type').value = 'rehearsal';
+  document.getElementById('add-note').value = '';
+  document.getElementById('add-status').innerHTML = '';
+
+  await fetchTemplates();
+  renderTemplateChips();
+
+  const sheet = document.getElementById('add-sheet');
+  const backdrop = document.getElementById('add-backdrop');
+  sheet.classList.add('show');
+  backdrop.classList.add('show');
+  sheet.setAttribute('aria-hidden', 'false');
+}
+
+function closeAddSheet() {
+  const sheet = document.getElementById('add-sheet');
+  const backdrop = document.getElementById('add-backdrop');
+  sheet.classList.remove('show');
+  backdrop.classList.remove('show');
+  sheet.setAttribute('aria-hidden', 'true');
+}
+
+function renderTemplateChips() {
+  const wrap = document.getElementById('add-templates');
+  wrap.innerHTML = '';
+  const items = (TEMPLATES_CACHE && TEMPLATES_CACHE.items) || [];
+  if (items.length === 0) {
+    wrap.innerHTML = '<span style="font-size:11px;color:var(--muted)">テンプレなし — 編集ボタンで追加</span>';
+    return;
+  }
+  for (const t of items) {
+    const studio = META.studios[t.studio] || { color: 'var(--accent)' };
+    const chip = document.createElement('button');
+    chip.className = 'template-chip';
+    chip.style.setProperty('--studio-color', studio.color);
+    chip.textContent = t.label;
+    chip.type = 'button';
+    chip.addEventListener('click', () => {
+      document.getElementById('add-label').value = t.label;
+      if (t.studio) document.getElementById('add-studio').value = t.studio;
+      if (t.type) document.getElementById('add-type').value = t.type;
+    });
+    wrap.appendChild(chip);
+  }
+}
+
+async function saveAddedEvent() {
+  const date = document.getElementById('add-date').value;
+  const start = document.getElementById('add-start').value;
+  const end = document.getElementById('add-end').value;
+  const label = document.getElementById('add-label').value.trim();
+  const studio = document.getElementById('add-studio').value;
+  const type = document.getElementById('add-type').value;
+  const note = document.getElementById('add-note').value.trim();
+
+  const statusEl = document.getElementById('add-status');
+  statusEl.innerHTML = '';
+
+  if (!date || !start || !end || !label) {
+    setStatus(statusEl, '日付・時刻・演目は必須です', 'error');
+    return;
+  }
+  if (!date.startsWith(CURRENT_MONTH)) {
+    setStatus(statusEl, '対象月 (' + formatMonthLabel(CURRENT_MONTH) + ') の範囲で指定してください', 'error');
+    return;
+  }
+  const key = getUploadKey();
+  if (!API_BASE_URL || !key) {
+    setStatus(statusEl, '権限なし (#key= の URL でアクセスしてください)', 'error');
+    return;
+  }
+
+  const newEv = { date, start, end, studio, type, label, tags: extractTags(label) };
+  if (note) newEv.note = note;
+
+  const newEvents = [...(MONTH_DATA.events || []), newEv];
+  newEvents.sort((a,b) => (a.date+a.start).localeCompare(b.date+b.start));
+
+  const payload = {
+    month: CURRENT_MONTH,
+    month_label: formatMonthLabel(CURRENT_MONTH),
+    generated_at: isoLocal(new Date()),
+    source: MONTH_DATA.source || 'added via app',
+    events: newEvents,
+    prev_version: MONTH_DATA._version,
+  };
+
+  setStatus(statusEl, '保存中…', 'info');
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/upload?month=${CURRENT_MONTH}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Upload-Key': key },
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error((json.error || '') + (json.detail ? ': ' + json.detail : ''));
+    closeAddSheet();
+    await loadMonth(CURRENT_MONTH);
+    await checkNewChanges();
+  } catch (e) {
+    setStatus(statusEl, '保存失敗: ' + e.message, 'error');
+  }
+}
+
+function setStatus(el, text, kind) {
+  el.innerHTML = '';
+  if (!text) return;
+  const div = document.createElement('div');
+  div.className = 'import-status ' + kind;
+  div.textContent = text;
+  el.appendChild(div);
+}
+
+/* ───── Template management ───── */
+
+function bindTplModal() {
+  document.getElementById('tpl-close').addEventListener('click', closeTplSheet);
+  document.getElementById('tpl-backdrop').addEventListener('click', closeTplSheet);
+  document.getElementById('tpl-cancel').addEventListener('click', closeTplSheet);
+  document.getElementById('tpl-save').addEventListener('click', saveTemplates);
+  document.getElementById('tpl-add-row').addEventListener('click', () => {
+    TPL_EDIT_DRAFT.push({ label: '', studio: 'kawagoe', type: 'rehearsal' });
+    renderTplList();
+  });
+  bindSwipeToDismiss(document.getElementById('tpl-sheet'), closeTplSheet);
+}
+
+async function openTplSheet() {
+  await fetchTemplates();
+  TPL_EDIT_DRAFT = (TEMPLATES_CACHE && TEMPLATES_CACHE.items)
+    ? TEMPLATES_CACHE.items.map(t => ({ ...t }))
+    : [];
+  renderTplList();
+  document.getElementById('tpl-status').innerHTML = '';
+
+  const sheet = document.getElementById('tpl-sheet');
+  const backdrop = document.getElementById('tpl-backdrop');
+  sheet.classList.add('show');
+  backdrop.classList.add('show');
+  sheet.setAttribute('aria-hidden', 'false');
+}
+
+function closeTplSheet() {
+  const sheet = document.getElementById('tpl-sheet');
+  const backdrop = document.getElementById('tpl-backdrop');
+  sheet.classList.remove('show');
+  backdrop.classList.remove('show');
+  sheet.setAttribute('aria-hidden', 'true');
+  TPL_EDIT_DRAFT = null;
+}
+
+function renderTplList() {
+  const wrap = document.getElementById('tpl-list');
+  wrap.innerHTML = '';
+  if (!TPL_EDIT_DRAFT || TPL_EDIT_DRAFT.length === 0) {
+    wrap.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:10px">テンプレートなし。 ↓ で追加</div>';
+    return;
+  }
+  TPL_EDIT_DRAFT.forEach((t, idx) => {
+    const studio = META.studios[t.studio] || { color: 'var(--accent)' };
+    const row = document.createElement('div');
+    row.className = 'tpl-row';
+    row.style.setProperty('--studio-color', studio.color);
+
+    const labelIn = document.createElement('input');
+    labelIn.type = 'text';
+    labelIn.value = t.label || '';
+    labelIn.placeholder = '演目名 (例: 海賊)';
+    labelIn.addEventListener('input', () => { t.label = labelIn.value; });
+    row.appendChild(labelIn);
+
+    const studioSel = document.createElement('select');
+    for (const [k, v] of Object.entries(META.studios)) {
+      const opt = document.createElement('option');
+      opt.value = k; opt.textContent = v.name;
+      if (k === t.studio) opt.selected = true;
+      studioSel.appendChild(opt);
+    }
+    studioSel.addEventListener('change', () => {
+      t.studio = studioSel.value;
+      const ns = META.studios[t.studio];
+      if (ns) row.style.setProperty('--studio-color', ns.color);
+    });
+    row.appendChild(studioSel);
+
+    const typeSel = document.createElement('select');
+    for (const [k, v] of Object.entries(META.types)) {
+      const opt = document.createElement('option');
+      opt.value = k; opt.textContent = v.symbol;
+      if (k === t.type) opt.selected = true;
+      typeSel.appendChild(opt);
+    }
+    typeSel.addEventListener('change', () => { t.type = typeSel.value; });
+    row.appendChild(typeSel);
+
+    const del = document.createElement('button');
+    del.className = 'tpl-del';
+    del.textContent = '✕';
+    del.addEventListener('click', () => {
+      TPL_EDIT_DRAFT.splice(idx, 1);
+      renderTplList();
+    });
+    row.appendChild(del);
+
+    wrap.appendChild(row);
+  });
+}
+
+async function saveTemplates() {
+  const statusEl = document.getElementById('tpl-status');
+  for (const t of TPL_EDIT_DRAFT) {
+    if (!t.label || !t.label.trim()) {
+      setStatus(statusEl, '空の演目名があります', 'error');
+      return;
+    }
+  }
+  const key = getUploadKey();
+  if (!API_BASE_URL || !key) {
+    setStatus(statusEl, '権限なし', 'error');
+    return;
+  }
+  setStatus(statusEl, '保存中…', 'info');
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/templates`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Upload-Key': key },
+      body: JSON.stringify({ items: TPL_EDIT_DRAFT }),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'unknown');
+    TEMPLATES_CACHE = { items: TPL_EDIT_DRAFT };
+    renderTemplateChips();
+    closeTplSheet();
+    await checkNewChanges();
+  } catch (e) {
+    setStatus(statusEl, '保存失敗: ' + e.message, 'error');
+  }
+}
+
+/* ───── News (history) ───── */
+
+const NEWS_LAST_SEEN_KEY = 'ballet-news-last-seen';
+let HISTORY_CACHE = null;
+
+function bindNewsModal() {
+  document.getElementById('news-toggle').addEventListener('click', openNewsSheet);
+  document.getElementById('news-close').addEventListener('click', closeNewsSheet);
+  document.getElementById('news-backdrop').addEventListener('click', closeNewsSheet);
+  bindSwipeToDismiss(document.getElementById('news-sheet'), closeNewsSheet);
+
+  document.getElementById('news-banner').addEventListener('click', () => {
+    document.getElementById('news-banner').hidden = true;
+    openNewsSheet();
+  });
+}
+
+async function fetchHistory(limit = 100) {
+  if (!API_BASE_URL) return { entries: [], total: 0 };
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/history?limit=${limit}`, { cache: 'no-store' });
+    if (res.ok) {
+      HISTORY_CACHE = await res.json();
+      return HISTORY_CACHE;
+    }
+  } catch (e) {}
+  return { entries: [], total: 0 };
+}
+
+async function openNewsSheet() {
+  const sheet = document.getElementById('news-sheet');
+  const backdrop = document.getElementById('news-backdrop');
+  sheet.classList.add('show');
+  backdrop.classList.add('show');
+  sheet.setAttribute('aria-hidden', 'false');
+
+  const list = document.getElementById('news-list');
+  list.innerHTML = '<div class="news-empty">読み込み中…</div>';
+  const data = await fetchHistory(100);
+  renderHistory(data.entries);
+  markNewsSeen(data.entries);
+}
+
+function closeNewsSheet() {
+  const sheet = document.getElementById('news-sheet');
+  const backdrop = document.getElementById('news-backdrop');
+  sheet.classList.remove('show');
+  backdrop.classList.remove('show');
+  sheet.setAttribute('aria-hidden', 'true');
+}
+
+function renderHistory(entries) {
+  const list = document.getElementById('news-list');
+  list.innerHTML = '';
+  if (!entries || entries.length === 0) {
+    list.innerHTML = '<div class="news-empty">まだ変更履歴がありません</div>';
+    return;
+  }
+  for (const e of entries) {
+    const div = document.createElement('div');
+    div.className = 'news-item';
+    const ts = new Date(e.ts);
+    const tsStr = `${ts.getMonth()+1}/${ts.getDate()} ${String(ts.getHours()).padStart(2,'0')}:${String(ts.getMinutes()).padStart(2,'0')}`;
+    div.innerHTML = `
+      <div class="news-ts">${tsStr}</div>
+      <div class="news-summary">${escapeHtml(e.summary || '(変更)')}</div>
+    `;
+    if (e.month) {
+      const jump = document.createElement('button');
+      jump.className = 'news-jump';
+      jump.textContent = `→ ${formatMonthLabel(e.month)} を見る`;
+      jump.addEventListener('click', () => {
+        closeNewsSheet();
+        if (e.month !== CURRENT_MONTH) loadMonth(e.month);
+      });
+      div.appendChild(jump);
+    }
+    list.appendChild(div);
+  }
+}
+
+function markNewsSeen(entries) {
+  if (!entries || entries.length === 0) return;
+  const latestTs = entries[0].ts;
+  try { localStorage.setItem(NEWS_LAST_SEEN_KEY, latestTs); } catch (e) {}
+  document.getElementById('news-toggle').classList.remove('has-new');
+  document.getElementById('news-banner').hidden = true;
+}
+
+async function checkNewChanges() {
+  if (!API_BASE_URL) return;
+  const data = await fetchHistory(20);
+  if (!data.entries || data.entries.length === 0) return;
+  let lastSeen = null;
+  try { lastSeen = localStorage.getItem(NEWS_LAST_SEEN_KEY); } catch (e) {}
+  if (!lastSeen) {
+    // First visit: mark all as seen
+    markNewsSeen(data.entries);
+    return;
+  }
+  const newOnes = data.entries.filter(e => e.ts > lastSeen);
+  if (newOnes.length === 0) return;
+  // Show banner + highlight news button
+  const banner = document.getElementById('news-banner');
+  banner.innerHTML = `
+    <button class="news-banner">
+      <span class="news-banner-text">前回以降に ${newOnes.length} 件の変更があります</span>
+      <span class="news-banner-arrow">→ おしらせ</span>
+    </button>
+  `;
+  banner.hidden = false;
+  banner.querySelector('button').addEventListener('click', () => {
+    banner.hidden = true;
+    openNewsSheet();
+  });
+  document.getElementById('news-toggle').classList.add('has-new');
 }
 
 /* ────────────────────────────────────────────────────────
@@ -1834,6 +2626,7 @@ async function saveEdits() {
     generated_at: isoLocal(new Date()),
     source: MONTH_DATA.source || 'edited via app',
     events: newEvents,
+    prev_version: MONTH_DATA._version,
   };
 
   setEditStatus('保存中…', 'info');
@@ -1855,6 +2648,7 @@ async function saveEdits() {
     EDIT_STATE = null;
     await loadMonth(CURRENT_MONTH);
     openDaySheet(savedDateObj);
+    checkNewChanges();
   } catch (e) {
     EDIT_STATE.saving = false;
     setEditStatus('保存失敗: ' + e.message, 'error');
@@ -1885,10 +2679,20 @@ function bindImportModal() {
   captureUploadKeyFromHash();
   const toggle = document.getElementById('import-toggle');
   if (getUploadKey()) toggle.classList.add('visible');
+  // 「追加」 「おしらせ」 も同じ条件で表示
+  document.getElementById('add-toggle').classList.add('visible');
+  if (getUploadKey()) {
+    // edit/add are key-only
+  } else {
+    document.getElementById('add-toggle').classList.remove('visible');
+  }
+  // News button is visible for everyone (read-only history)
+  document.getElementById('news-toggle').classList.add('visible');
 
   toggle.addEventListener('click', openImportSheet);
   document.getElementById('import-close').addEventListener('click', closeImportSheet);
   document.getElementById('import-backdrop').addEventListener('click', closeImportSheet);
+  bindSwipeToDismiss(document.getElementById('import-sheet'), closeImportSheet);
 
   // Inputs auto-parse
   const pdfInput = document.getElementById('import-pdf');
@@ -2580,6 +3384,10 @@ function downloadCurrentPreview() {
 async function uploadCurrentPreview() {
   const payload = buildFinalPayload();
   if (!payload) return;
+  // Add version only when uploading to the current month (we know its version)
+  if (payload.month === CURRENT_MONTH && MONTH_DATA && MONTH_DATA._version != null) {
+    payload.prev_version = MONTH_DATA._version;
+  }
   const key = getUploadKey();
   if (!API_BASE_URL) {
     setImportStatus('API_BASE_URL が未設定です (デプロイ前)', 'error');
@@ -2606,6 +3414,7 @@ async function uploadCurrentPreview() {
     if (payload.month === CURRENT_MONTH) {
       setTimeout(() => loadMonth(CURRENT_MONTH), 500);
     }
+    checkNewChanges();
   } catch (e) {
     setImportStatus('アップロード失敗: ' + e.message, 'error');
   }
