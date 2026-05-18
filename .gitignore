@@ -3,3 +3,6 @@ sources/
 *.pdf
 *.swp
 node_modules/
+# Wrangler local state (auth cache, deployment cache, etc.)
+proxy/.wrangler/
+.wrangler/
