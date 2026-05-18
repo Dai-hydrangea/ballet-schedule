@@ -274,6 +274,53 @@ export default {
       return jsonResponse({ ok: true, count: body.items.length });
     }
 
+    // ─── GET /api/export (auth, full backup) ───
+    if (path === '/api/export' && request.method === 'GET') {
+      if (!env.UPLOAD_KEY) return jsonResponse({ error: 'server_misconfigured' }, 500);
+      const key = request.headers.get('x-upload-key') || url.searchParams.get('key');
+      if (!key || key !== env.UPLOAD_KEY) return jsonResponse({ error: 'auth_required_or_invalid' }, 401);
+
+      const list = await env.BALLET_KV.list();
+      const monthKeys = list.keys.filter(k => /^\d{4}-\d{2}$/.test(k.name));
+
+      const months = {};
+      for (const k of monthKeys) {
+        const stored = await env.BALLET_KV.get(k.name);
+        if (stored) {
+          try { months[k.name] = JSON.parse(stored); }
+          catch (e) { months[k.name] = { _parse_error: true, raw: stored }; }
+        }
+      }
+
+      const templatesRaw = await env.BALLET_KV.get('templates');
+      const historyRaw = await env.BALLET_KV.get('history');
+      const templates = templatesRaw ? JSON.parse(templatesRaw) : null;
+      const history = historyRaw ? JSON.parse(historyRaw) : null;
+
+      const backup = {
+        version: 1,
+        exported_at: new Date().toISOString(),
+        worker: 'ballet-schedule-api',
+        months,
+        templates,
+        history,
+        meta: {
+          month_count: Object.keys(months).length,
+          history_count: history && history.entries ? history.entries.length : 0,
+          template_count: templates && templates.items ? templates.items.length : 0,
+        },
+      };
+
+      return new Response(JSON.stringify(backup, null, 2), {
+        status: 200,
+        headers: {
+          'content-type': 'application/json; charset=utf-8',
+          'content-disposition': `attachment; filename="ballet-schedule-backup-${new Date().toISOString().slice(0,10)}.json"`,
+          ...corsHeaders(),
+        },
+      });
+    }
+
     // ─── GET /api/history ───
     if (path === '/api/history' && request.method === 'GET') {
       const limit = Math.min(parseInt(url.searchParams.get('limit') || '50', 10), MAX_HISTORY);
@@ -293,7 +340,8 @@ export default {
         'POST /api/upload?month=YYYY-MM    (write events, X-Upload-Key auth)\n' +
         'GET  /api/templates               (read templates)\n' +
         'POST /api/templates               (write templates, auth)\n' +
-        'GET  /api/history?limit=50        (read history)\n\n' +
+        'GET  /api/history?limit=50        (read history)\n' +
+        'GET  /api/export                  (full backup, auth)\n\n' +
         'See https://github.com/Dai-hydrangea/ballet-schedule\n'
       );
     }

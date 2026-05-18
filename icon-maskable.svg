@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="ball" cx="50%" cy="50%" r="55%">
+      <stop offset="0%" stop-color="#f4a8b8"/>
+      <stop offset="100%" stop-color="#e88aa5"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" fill="#fde0e6"/>
+  <circle cx="256" cy="256" r="200" fill="url(#ball)"/>
+  <text x="256" y="316" fill="#ffffff" font-family="'Hiragino Maru Gothic ProN', 'M PLUS Rounded 1c', sans-serif" font-size="220" font-weight="700" text-anchor="middle">♪</text>
+</svg>

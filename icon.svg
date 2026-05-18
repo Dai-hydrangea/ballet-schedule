@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fff5f7"/>
+      <stop offset="100%" stop-color="#fde0e6"/>
+    </linearGradient>
+    <radialGradient id="ball" cx="50%" cy="40%" r="55%">
+      <stop offset="0%" stop-color="#f4a8b8"/>
+      <stop offset="100%" stop-color="#e88aa5"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <circle cx="256" cy="240" r="156" fill="url(#ball)"/>
+  <g fill="#ffffff" font-family="'Hiragino Maru Gothic ProN', 'M PLUS Rounded 1c', sans-serif">
+    <text x="256" y="278" font-size="180" font-weight="700" text-anchor="middle" letter-spacing="-4">♪</text>
+  </g>
+  <text x="256" y="446" fill="#c96985" font-family="'Hiragino Maru Gothic ProN', 'M PLUS Rounded 1c', sans-serif" font-size="58" font-weight="600" text-anchor="middle">バレエ予定</text>
+</svg>
