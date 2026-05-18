@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
 <meta name="description" content="バレエスタジオ予定表">
 <meta name="robots" content="noindex, nofollow">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>バレエスタジオ予定表</title>
 <style>
   :root {
@@ -695,9 +698,15 @@ function init() {
   buildNotes();
   bindBackToTop();
   bindSheet();
+  ensureMiniCalendarOpen();
   trackStickyHeight();
   render();
   scrollToTodayOrFirst();
+}
+
+function ensureMiniCalendarOpen() {
+  const mc = document.getElementById('mini-cal-details');
+  if (mc && !mc.open) mc.open = true;
 }
 
 function trackStickyHeight() {
