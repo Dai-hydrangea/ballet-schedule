@@ -83,16 +83,45 @@ async function pushHistory(env, entry) {
   await env.BALLET_KV.put('history', JSON.stringify({ entries }));
 }
 
+function formatEventLine(ev) {
+  const mo = parseInt(ev.date.split('-')[1], 10);
+  const d = parseInt(ev.date.split('-')[2], 10);
+  return `${mo}/${d} ${ev.start} ${ev.label}`;
+}
+
+const SUMMARY_DETAIL_CAP = 5;
+
 function summarizeChange(prev, next) {
   const prevEvents = (prev && prev.events) ? prev.events : [];
   const nextEvents = next.events || [];
   const keyOf = (ev) => `${ev.date}|${ev.start}|${ev.end}|${ev.label}|${ev.studio}`;
-  const prevSet = new Set(prevEvents.map(keyOf));
-  const nextSet = new Set(nextEvents.map(keyOf));
-  let added = 0, removed = 0;
-  for (const k of nextSet) if (!prevSet.has(k)) added++;
-  for (const k of prevSet) if (!nextSet.has(k)) removed++;
-  return { added, removed, before: prevEvents.length, after: nextEvents.length };
+  const prevMap = new Map(prevEvents.map(ev => [keyOf(ev), ev]));
+  const nextMap = new Map(nextEvents.map(ev => [keyOf(ev), ev]));
+  const added = [];
+  const removed = [];
+  for (const [k, ev] of nextMap) if (!prevMap.has(k)) added.push(ev);
+  for (const [k, ev] of prevMap) if (!nextMap.has(k)) removed.push(ev);
+
+  const parts = [];
+  for (const ev of added.slice(0, SUMMARY_DETAIL_CAP)) {
+    parts.push(`+ ${formatEventLine(ev)} 追加`);
+  }
+  for (const ev of removed.slice(0, SUMMARY_DETAIL_CAP)) {
+    parts.push(`− ${formatEventLine(ev)} 削除`);
+  }
+  const moreAdd = Math.max(0, added.length - SUMMARY_DETAIL_CAP);
+  const moreRemove = Math.max(0, removed.length - SUMMARY_DETAIL_CAP);
+  if (moreAdd + moreRemove > 0) {
+    parts.push(`... 他 ${moreAdd + moreRemove} 件`);
+  }
+  const summary = parts.length > 0
+    ? parts.join('\n')
+    : '変更なし (内容は同じ)';
+
+  return {
+    summary,
+    counts: { added: added.length, removed: removed.length, before: prevEvents.length, after: nextEvents.length },
+  };
 }
 
 export default {
@@ -171,15 +200,12 @@ export default {
       await env.BALLET_KV.put(month, JSON.stringify(payload));
 
       // History entry
-      const diff = summarizeChange(prev, payload);
+      const change = summarizeChange(prev, payload);
       await pushHistory(env, {
         action: 'upload',
         month,
-        summary: `${month}: 予定 ${diff.before} → ${diff.after} 件 (+${diff.added} / −${diff.removed})`,
-        added: diff.added,
-        removed: diff.removed,
-        before: diff.before,
-        after: diff.after,
+        summary: change.summary,
+        counts: change.counts,
       });
 
       return jsonResponse({ ok: true, month, count: body.events.length, version: newVersion });
