@@ -2100,67 +2100,382 @@ function extractTags(label) {
 }
 
 function parseTextInput(raw, defaultMonth) {
-  const [y, m] = defaultMonth.split('-').map(Number);
-  const lines = raw.split(/\r?\n/);
+  // ── 0) 月スコープで pre-filter (例: 「4月中は」 が defaultMonth と一致したら、 そこ以降だけ採用) ──
+  const filtered = filterByMonthScope(raw, defaultMonth);
+
+  const lines = filtered.split(/\r?\n/);
   const events = [];
 
   let currentDate = null;
-  let currentNote = '';
+  let currentDateContext = '';
+  let currentWeekday = null;        // 0=日 〜 6=土
+  let currentWeekdayContext = '';
 
-  // Pattern: "10日(日)", "10日（日）", "10 日(日)", "10土", "10日"
-  const dateRe = /^\s*(\d{1,2})\s*日?\s*[\(（]?\s*(日|月|火|水|木|金|土)?\s*[\)）]?\s*(.*)$/;
-  // Pattern: "13:00~15:30 ラベル" or "13:00〜15:30 ラベル" or "1:30~3:00 ラベル"
-  const timeRe = /(\d{1,2}):(\d{2})\s*[~〜\-–−]\s*(\d{1,2}):(\d{2})\s*(.+)?/;
-
-  for (let raw of lines) {
-    const line = raw.trim();
+  for (let rawLine of lines) {
+    let line = rawLine.replace(/[　\t]+/g, ' ').trim();
     if (!line) continue;
 
-    // Try date header
-    const dm = line.match(/^(\d{1,2})\s*日?[\(（]?(日|月|火|水|木|金|土)[\)）]?(.*)$/);
-    if (dm) {
-      const day = parseInt(dm[1], 10);
-      if (day >= 1 && day <= 31) {
-        currentDate = `${y}-${String(m).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-        currentNote = (dm[3] || '').trim();
-        // The rest of the line might contain time entry too
-        const after = dm[3] || '';
-        const tm = after.match(timeRe);
-        if (tm) {
-          events.push(makeEventFromMatch(currentDate, tm, currentNote));
-        }
-        continue;
-      }
+    // Month header / scope marker → date context をリセット (events 生成しない)
+    if (/^\s*\d{1,2}月\s*$/.test(line)
+        || /^\s*\d{1,2}月(中は|のみ|だけ|限定|から)\s*$/.test(line)) {
+      currentDate = null;
+      currentWeekday = null;
+      continue;
     }
 
-    // Try time line (continues for the current date)
+    // 2) 曜日ヘッダの認識: 「○火曜日」 「火曜日」 「○土曜日は」 等
+    const wdInfo = tryExtractWeekday(line);
+    if (wdInfo) {
+      currentWeekday = wdInfo.weekday;
+      currentWeekdayContext = wdInfo.context;
+      currentDate = null;
+      // 同じ行に時刻情報があれば extract
+      if (wdInfo.rest) {
+        const timeInfo = tryExtractTime(wdInfo.rest);
+        if (timeInfo) {
+          const label = cleanLabel(timeInfo.rest);
+          for (const d of getMatchingDates(defaultMonth, currentWeekday)) {
+            events.push(makeTextEvent(d, timeInfo.start, timeInfo.end, label, currentWeekdayContext));
+          }
+        }
+      }
+      continue;
+    }
+
+    // 3) 日付ヘッダの認識 (5/22, 5月22日, 22日, 22土 等)
+    const dateInfo = tryExtractDate(line, defaultMonth);
+    let rest = line;
+    if (dateInfo) {
+      currentDate = dateInfo.date;
+      currentDateContext = dateInfo.context;
+      currentWeekday = null;
+      rest = dateInfo.rest;
+    }
+
+    // 4) 時刻範囲 (or 単発時刻) を抽出
+    const timeInfo = tryExtractTime(rest);
+    if (!timeInfo) continue;
+    const label = cleanLabel(timeInfo.rest);
+
     if (currentDate) {
-      const tm = line.match(timeRe);
-      if (tm) {
-        events.push(makeEventFromMatch(currentDate, tm, currentNote));
+      events.push(makeTextEvent(currentDate, timeInfo.start, timeInfo.end, label, currentDateContext));
+    } else if (currentWeekday !== null) {
+      for (const d of getMatchingDates(defaultMonth, currentWeekday)) {
+        events.push(makeTextEvent(d, timeInfo.start, timeInfo.end, label, currentWeekdayContext));
       }
     }
   }
 
-  return events;
+  // 重複除去 (同 date + start + end + label の組合せ)
+  const seen = new Set();
+  const dedup = [];
+  for (const ev of events) {
+    const k = `${ev.date}|${ev.start}|${ev.end}|${ev.label}|${ev.studio}`;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    dedup.push(ev);
+  }
+  return dedup;
 }
 
-function makeEventFromMatch(date, tm, contextNote) {
-  const sh = parseInt(tm[1], 10);
-  const sm = parseInt(tm[2], 10);
-  const eh = parseInt(tm[3], 10);
-  const em = parseInt(tm[4], 10);
-  // PM heuristic: if hour <= 9 in a context like "1:30" (under 10), treat as PM (13:30)
-  const start = `${String(sh < 10 && tm[1].length === 1 ? sh + 12 : sh).padStart(2,'0')}:${String(sm).padStart(2,'0')}`;
-  const end = `${String(eh < 10 && tm[3].length === 1 ? eh + 12 : eh).padStart(2,'0')}:${String(em).padStart(2,'0')}`;
-  const label = (tm[5] || '').trim().replace(/^[、・\s]+|[、・\s]+$/g, '');
-  const tags = extractTags(label);
-  const type = guessType(label);
-  const studio = guessStudio(label + ' ' + (contextNote || ''));
-  const ev = { date, start, end, studio, type, label, tags };
-  const noteParts = [];
-  if (contextNote && /合同|川越|小手指|所沢/.test(contextNote)) noteParts.push(contextNote);
-  if (noteParts.length > 0) ev.note = noteParts.join(' ');
+/* ───── Month scope filter ─────
+ * 「4月中は」 「5月から」 等のマーカーを認識して、
+ * 対象月 (defaultMonth) に該当しないセクションを除外する。
+ *
+ * ルール:
+ *   - 「N月中は」 / 「N月のみ」 → N がデフォルト月なら、 以降を採用 (以前は破棄)、
+ *     N がデフォルト月でないなら、 以降は破棄
+ *   - 「N月から」 → N がデフォルト月「以下」 なら以降採用、 そうでないなら破棄
+ *   - マーカーがなければ、 全体を採用 (= 現行挙動)
+ */
+function filterByMonthScope(raw, defaultMonth) {
+  const [_, defM] = defaultMonth.split('-').map(Number);
+  const lines = raw.split(/\r?\n/);
+
+  const pureMonthHeader = /^\s*(\d{1,2})月\s*$/;
+  const scopeMarker = /(\d{1,2})月(中は|のみ|だけ|限定|から)/;
+
+  let activeMonth = null;     // current section's month (null = pre-header, treated as default)
+  let activeScopeKind = null; // 'include' or 'exclude' for marker-based scopes
+  const include = new Array(lines.length).fill(true);
+  let anyHeaderSeen = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+
+    // 1) Standalone month header: "4月" or "5月" on its own line
+    const pm = trimmed.match(pureMonthHeader);
+    if (pm) {
+      activeMonth = +pm[1];
+      activeScopeKind = (activeMonth === defM) ? 'include' : 'exclude';
+      anyHeaderSeen = true;
+      include[i] = true; // keep so parseTextInput can reset its date context
+      continue;
+    }
+
+    // 2) Marker: "4月中は", "5月から" etc.
+    const sm = trimmed.match(scopeMarker);
+    if (sm) {
+      const target = +sm[1];
+      const kind = sm[2];
+      anyHeaderSeen = true;
+      if (kind === 'から') {
+        activeScopeKind = (defM >= target) ? 'include' : 'exclude';
+      } else {
+        activeScopeKind = (defM === target) ? 'include' : 'exclude';
+      }
+      activeMonth = target;
+      include[i] = true; // keep so parseTextInput can reset its date context
+      continue;
+    }
+
+    // 3) Skip annotation lines (☆/★/※) — they contain dates/times that
+    //    shouldn't be parsed as actual events.
+    if (/^[☆★※注釈※]/.test(trimmed)) {
+      include[i] = false;
+      continue;
+    }
+
+    // 4) Apply the active scope
+    if (activeScopeKind === null) {
+      include[i] = true;
+    } else {
+      include[i] = (activeScopeKind === 'include');
+    }
+  }
+
+  // If any header was seen, drop pre-header lines unless they have explicit dates
+  if (anyHeaderSeen) {
+    let firstHeader = -1;
+    for (let i = 0; i < lines.length; i++) {
+      const t = lines[i].trim();
+      if (pureMonthHeader.test(t) || scopeMarker.test(t)) { firstHeader = i; break; }
+    }
+    if (firstHeader > 0) {
+      for (let i = 0; i < firstHeader; i++) {
+        const hasExplicitDate = /\d{1,2}[\/\-]\d{1,2}|\d{1,2}月\s*\d{1,2}日|\d{1,2}\s*日(?![月])/.test(lines[i]);
+        if (!hasExplicitDate) include[i] = false;
+      }
+    }
+  }
+
+  return lines.filter((_, i) => include[i]).join('\n');
+}
+
+/* ───── Weekday header ───── */
+
+function tryExtractWeekday(line) {
+  // 「○火曜日」 「○火曜日は」 「火曜日」 「火曜」 「●火曜日」 「・火曜日」
+  const m = line.match(/^[○⚪◯●・\s]*\s*(日|月|火|水|木|金|土)曜(?:日)?(?:は|：|:)?\s*(.*)$/);
+  if (!m) return null;
+  const wd = ['日','月','火','水','木','金','土'].indexOf(m[1]);
+  if (wd < 0) return null;
+  const rest = (m[2] || '').trim();
+  // 「土曜日は今の所15:00〜16:30一般クラスで変更なし。」 みたいな埋め込み時刻も rest として返す
+  return { weekday: wd, rest, context: `${m[1]}曜日` };
+}
+
+function getMatchingDates(defaultMonth, weekday) {
+  const [y, m] = defaultMonth.split('-').map(Number);
+  const last = new Date(y, m, 0).getDate();
+  const dates = [];
+  for (let d = 1; d <= last; d++) {
+    const dt = new Date(y, m - 1, d);
+    if (dt.getDay() === weekday) {
+      dates.push(`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`);
+    }
+  }
+  return dates;
+}
+
+/* ───── Date extraction (multi-pattern) ───── */
+
+function tryExtractDate(line, defaultMonth) {
+  const [defY, defM] = defaultMonth.split('-').map(Number);
+
+  const patterns = [
+    // 2026/5/22, 2026-5-22
+    { re: /(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/, take: (m) => ({ y: +m[1], mo: +m[2], d: +m[3] }) },
+    // 5月22日 or 5月22日(日)
+    { re: /(\d{1,2})月\s*(\d{1,2})日(?:\s*[\(((](日|月|火|水|木|金|土)[\))]\s*)?/, take: (m) => ({ y: defY, mo: +m[1], d: +m[2] }) },
+    // 5/22, 5-22 (avoid matching 2026/5/22 again — handled above; this matches when no Y)
+    { re: /(?:^|[\s、,])(\d{1,2})[\/\-](\d{1,2})(?!\d)(?!月)/, take: (m) => ({ y: defY, mo: +m[1], d: +m[2] }) },
+    // 22日 or 22日(日) (no month, use default)
+    { re: /(?:^|[\s、,])(\d{1,2})\s*日(?:\s*[\(((](日|月|火|水|木|金|土)[\))]\s*)?(?!月)/, take: (m) => ({ y: defY, mo: defM, d: +m[1] }) },
+    // 22(土) のような数字+曜日 (Image 3 の "25土" 形式)
+    { re: /^(\d{1,2})\s*(日|月|火|水|木|金|土)(?![\d:時月])/, take: (m) => ({ y: defY, mo: defM, d: +m[1] }) },
+  ];
+
+  for (const p of patterns) {
+    const m = line.match(p.re);
+    if (!m) continue;
+    const { y, mo, d } = p.take(m);
+    if (!d || d < 1 || d > 31) continue;
+    if (mo < 1 || mo > 12) continue;
+    if (y < 2000 || y > 2100) continue;
+    const date = `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const matchStart = m.index;
+    const matchEnd = m.index + m[0].length;
+    const rest = (line.slice(0, matchStart) + ' ' + line.slice(matchEnd)).trim();
+    return { date, rest, context: m[0].trim() };
+  }
+  return null;
+}
+
+/* ───── Time extraction (multi-pattern) ───── */
+
+function tryExtractTime(line) {
+  // ── 範囲パターン (最優先) ──
+  const rangePatterns = [
+    // HH:MM〜HH:MM
+    {
+      re: /(\d{1,2}):(\d{2})\s*[~〜～\-–−ー]\s*(\d{1,2}):(\d{2})/,
+      build: (m) => ({ start: fmtTime(+m[1], +m[2]), end: fmtTime(+m[3], +m[4]) }),
+    },
+    // H時M分〜H時M分
+    {
+      re: /(\d{1,2})時(\d{1,2})分?\s*[~〜～\-–−ー]\s*(\d{1,2})時(\d{1,2})分?/,
+      build: (m) => ({ start: fmtTime(+m[1], +m[2]), end: fmtTime(+m[3], +m[4]) }),
+    },
+    // H時(半)?〜H時(半)?
+    {
+      re: /(\d{1,2})時(半)?\s*[~〜～\-–−ー]\s*(\d{1,2})時(半)?/,
+      build: (m) => ({
+        start: fmtTime(+m[1], m[2] === '半' ? 30 : 0),
+        end: fmtTime(+m[3], m[4] === '半' ? 30 : 0),
+      }),
+    },
+    // H~HH:MM (例: 「3~5:30」)
+    {
+      re: /(?<![\d:])(\d{1,2})\s*[~〜～\-–−ー]\s*(\d{1,2}):(\d{2})/,
+      build: (m) => ({ start: fmtTime(+m[1], 0), end: fmtTime(+m[2], +m[3]) }),
+    },
+    // HH:MM~H (例: 「3:30~5」)
+    {
+      re: /(\d{1,2}):(\d{2})\s*[~〜～\-–−ー]\s*(\d{1,2})(?![\d:時分])/,
+      build: (m) => ({ start: fmtTime(+m[1], +m[2]), end: fmtTime(+m[3], 0) }),
+    },
+    // H~H (例: 「1~3」, 「10~12」)
+    {
+      re: /(?<![\d:時])(\d{1,2})\s*[~〜～\-–−ー]\s*(\d{1,2})(?![\d:時分])/,
+      build: (m) => ({ start: fmtTime(+m[1], 0), end: fmtTime(+m[2], 0) }),
+    },
+  ];
+
+  for (const p of rangePatterns) {
+    const m = line.match(p.re);
+    if (!m) continue;
+    let { start, end } = p.build(m);
+    // AM/PM rollover: end が start より前ならば +12h (= 午後想定)
+    const sMin = toMin(start);
+    let eMin = toMin(end);
+    if (eMin <= sMin) {
+      eMin += 12 * 60;
+      end = minToTime(eMin);
+    }
+    const matchStart = m.index;
+    const matchEnd = m.index + m[0].length;
+    const rest = (line.slice(0, matchStart) + ' ' + line.slice(matchEnd)).trim();
+    return { start, end, rest };
+  }
+
+  // 範囲がなかったとき、 「まで」 「から」 等の境界ワードを含む行は補足扱いで skip
+  if (/(まで|から|以降|以前|より|まえ|あと|過ぎ)/.test(line)) {
+    return null;
+  }
+
+  // ── 「H~ラベル」 = 開始 H 時、 終了未定 (60 分仮定) ──
+  // 例: 「10~オーロラ」, 「11:30~vaクラス」, 「12:30~一部」
+  const openEndedHM = line.match(/(?<![\d:])(\d{1,2}):(\d{2})\s*[~〜～]/);
+  if (openEndedHM) {
+    const sh = +openEndedHM[1], sm = +openEndedHM[2];
+    const matchStart = openEndedHM.index;
+    const matchEnd = matchStart + openEndedHM[0].length;
+    const rest = (line.slice(0, matchStart) + ' ' + line.slice(matchEnd)).trim();
+    return { start: fmtTime(sh, sm), end: fmtTime(sh + 1, sm), rest };
+  }
+  const openEndedH = line.match(/(?<![\d:時])(\d{1,2})\s*[~〜～]/);
+  if (openEndedH) {
+    const sh = +openEndedH[1];
+    const matchStart = openEndedH.index;
+    const matchEnd = matchStart + openEndedH[0].length;
+    const rest = (line.slice(0, matchStart) + ' ' + line.slice(matchEnd)).trim();
+    return { start: fmtTime(sh, 0), end: fmtTime(sh + 1, 0), rest };
+  }
+
+  // ── 単発時刻 (60 分仮定) ──
+  const singlePatterns = [
+    {
+      re: /(\d{1,2})時(\d{1,2})分?/,
+      build: (m) => {
+        const sh = +m[1], sm = +m[2];
+        return { start: fmtTime(sh, sm), end: fmtTime(sh + 1, sm) };
+      },
+    },
+    {
+      re: /(\d{1,2})時(半)?(?![\d:])/,
+      build: (m) => {
+        const sh = +m[1];
+        const sm = m[2] === '半' ? 30 : 0;
+        return { start: fmtTime(sh, sm), end: fmtTime(sh + 1, sm) };
+      },
+    },
+    {
+      re: /(\d{1,2}):(\d{2})/,
+      build: (m) => {
+        const sh = +m[1], sm = +m[2];
+        return { start: fmtTime(sh, sm), end: fmtTime(sh + 1, sm) };
+      },
+    },
+  ];
+
+  for (const p of singlePatterns) {
+    const m = line.match(p.re);
+    if (!m) continue;
+    const { start, end } = p.build(m);
+    const matchStart = m.index;
+    const matchEnd = m.index + m[0].length;
+    const rest = (line.slice(0, matchStart) + ' ' + line.slice(matchEnd)).trim();
+    return { start, end, rest };
+  }
+  return null;
+}
+
+function fmtTime(h, m) {
+  // バレエの練習: 1〜3 時は午後と解釈 (13〜15 時)、 4 以降はそのまま
+  let hh = h;
+  if (hh >= 1 && hh <= 3) hh += 12;
+  if (hh > 23) hh = hh % 24;
+  if (hh < 0) hh = 0;
+  const mm = m || 0;
+  return `${String(hh).padStart(2,'0')}:${String(Math.max(0, Math.min(59, mm))).padStart(2,'0')}`;
+}
+
+function toMin(t) {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function minToTime(min) {
+  const total = ((min % (24 * 60)) + 24 * 60) % (24 * 60);
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+}
+
+function cleanLabel(s) {
+  return (s || '').replace(/^[、,\s・\(\)((））]+|[、,\s・\(\)((））]+$/g, '').trim();
+}
+
+function makeTextEvent(date, start, end, label, contextNote) {
+  const cleanedLabel = (label || '').trim() || 'クラス';
+  const tags = extractTags(cleanedLabel);
+  const type = guessType(cleanedLabel);
+  const studio = guessStudio(cleanedLabel + ' ' + (contextNote || ''));
+  const ev = { date, start, end, studio, type, label: cleanedLabel, tags };
+  if (contextNote && /合同|川越|小手指|所沢|みよしの/.test(contextNote)) {
+    ev.note = contextNote;
+  }
   return ev;
 }
 
