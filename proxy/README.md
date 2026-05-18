@@ -19,16 +19,27 @@
 ## デプロイ手順 (初回のみ)
 
 ### 0. 前提
-- Cloudflare アカウント (無料)
-- `wrangler` がインストール済 (`npm install -g wrangler`)
-- `wrangler login` 済
 
-### 1. KV namespace を作成
+- Cloudflare アカウント (無料)
+- Node.js (`node --version` で確認、 多分既に入ってる)
+- `wrangler` は **`npx` 経由で都度実行**するので global install 不要
+
+### 1. ログイン (初回のみ)
 
 ```bash
 cd ~/Developer/BalletSchedule/proxy
-wrangler kv:namespace create BALLET_KV
+npx wrangler login
 ```
+
+ブラウザが開いて Cloudflare の OAuth 画面 → 「Allow」。
+
+### 2. KV namespace を作成
+
+```bash
+npx wrangler kv namespace create BALLET_KV
+```
+
+(古い wrangler v2 系なら `kv:namespace` のコロン形式、 v3+ なら `kv namespace` のスペース形式)
 
 出力例:
 ```
@@ -40,21 +51,21 @@ binding = "BALLET_KV"
 id = "abc123def456..."
 ```
 
-`wrangler.toml` の `id = "PASTE_KV_NAMESPACE_ID_HERE"` を、 上で出力された ID に書き換える。
+`wrangler.toml` の `id = "PASTE_KV_NAMESPACE_ID_HERE"` を、 出力された ID に書き換える。
 
-### 2. アップロードキー (secret) を設定
+### 3. アップロードキー (secret) を設定
 
 ```bash
-wrangler secret put UPLOAD_KEY
+npx wrangler secret put UPLOAD_KEY
 ```
 
 プロンプトで好きな文字列 (16〜32 文字推奨、 例: `balllet-2026-spring-xyz`) を入力。
 **このキーは家族と共有する URL ハッシュ に使う**ので、 推測されにくいものを。
 
-### 3. デプロイ
+### 4. デプロイ
 
 ```bash
-wrangler deploy
+npx wrangler deploy
 ```
 
 出力されるエンドポイント URL を控える。 例:
@@ -122,16 +133,32 @@ Worker は受け取った events を以下でチェック:
 
 ### Worker のログを見たい
 ```bash
-wrangler tail
+npx wrangler tail
 ```
 
 ### KV の中身を確認
 ```bash
-wrangler kv:key list --binding BALLET_KV
-wrangler kv:key get --binding BALLET_KV "2026-05"
+# v3+
+npx wrangler kv key list --binding BALLET_KV
+npx wrangler kv key get --binding BALLET_KV "2026-05"
+
+# v2 (コロン形式)
+npx wrangler kv:key list --binding BALLET_KV
+npx wrangler kv:key get --binding BALLET_KV "2026-05"
 ```
 
 ### KV から削除
 ```bash
-wrangler kv:key delete --binding BALLET_KV "2026-05"
+npx wrangler kv key delete --binding BALLET_KV "2026-05"
+```
+
+### Node が入ってない場合
+
+```bash
+# Homebrew で
+brew install node
+
+# またはバージョン管理したいなら nvm 経由
+brew install nvm
+nvm install --lts
 ```
