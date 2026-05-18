@@ -4,23 +4,23 @@
   "studios": {
     "kawagoe": {
       "name": "川越",
-      "color": "#3b82f6",
-      "bg": "#dbeafe"
+      "color": "#7faae0",
+      "bg": "#eaf2fb"
     },
     "tokorozawa": {
       "name": "所沢 (小手指)",
-      "color": "#f97316",
-      "bg": "#ffedd5"
+      "color": "#f5a96e",
+      "bg": "#fef0e0"
     },
     "miyoshino": {
       "name": "みよしの幼稚園",
-      "color": "#10b981",
-      "bg": "#d1fae5"
+      "color": "#85cca5",
+      "bg": "#e8f6ed"
     },
     "joint": {
       "name": "合同 (川越+所沢)",
-      "color": "#a855f7",
-      "bg": "#ede9fe"
+      "color": "#c69ee3",
+      "bg": "#f4eafa"
     }
   },
   "types": {

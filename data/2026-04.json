@@ -2,8 +2,118 @@
   "month": "2026-04",
   "month_label": "2026年4月",
   "generated_at": "2026-05-18",
-  "source": "LINE (Image 3): 川越スタジオ レッスンとリハーサルの予定",
+  "source": "LINE (Image 2 + Image 3): 川越スタジオ レッスンとリハーサルの予定 + 4月中の通常レッスン変則ルール",
   "events": [
+    {
+      "date": "2026-04-02",
+      "start": "17:30",
+      "end": "19:00",
+      "studio": "kawagoe",
+      "type": "lesson",
+      "label": "通常クラス (木)",
+      "tags": [],
+      "target": "全員",
+      "note": "4月中の木曜 (LINE 通知より)"
+    },
+    {
+      "date": "2026-04-02",
+      "start": "19:00",
+      "end": "19:30",
+      "studio": "kawagoe",
+      "type": "lesson",
+      "label": "通常クラス (4年生以上)",
+      "tags": [],
+      "target": "4年生以上",
+      "note": "4月中は 4年生以上のみ 19:30まで (LINE 通知より)"
+    },
+    {
+      "date": "2026-04-07",
+      "start": "17:30",
+      "end": "19:00",
+      "studio": "joint",
+      "type": "lesson",
+      "label": "合同クラス",
+      "tags": [],
+      "target": "全員",
+      "note": "4月中の火曜は合同クラス (LINE 通知より)"
+    },
+    {
+      "date": "2026-04-07",
+      "start": "19:00",
+      "end": "19:30",
+      "studio": "joint",
+      "type": "lesson",
+      "label": "ポワント強化",
+      "tags": [],
+      "target": "希望者",
+      "note": "4月中の火曜 19:00〜19:30 (LINE 通知より)"
+    },
+    {
+      "date": "2026-04-09",
+      "start": "17:30",
+      "end": "19:00",
+      "studio": "kawagoe",
+      "type": "lesson",
+      "label": "通常クラス (木)",
+      "tags": [],
+      "target": "全員",
+      "note": "4月中の木曜 (LINE 通知より)"
+    },
+    {
+      "date": "2026-04-09",
+      "start": "19:00",
+      "end": "19:30",
+      "studio": "kawagoe",
+      "type": "lesson",
+      "label": "通常クラス (4年生以上)",
+      "tags": [],
+      "target": "4年生以上",
+      "note": "4月中は 4年生以上のみ 19:30まで (LINE 通知より)"
+    },
+    {
+      "date": "2026-04-14",
+      "start": "17:30",
+      "end": "19:00",
+      "studio": "joint",
+      "type": "lesson",
+      "label": "合同クラス",
+      "tags": [],
+      "target": "全員",
+      "note": "4月中の火曜は合同クラス (LINE 通知より)"
+    },
+    {
+      "date": "2026-04-14",
+      "start": "19:00",
+      "end": "19:30",
+      "studio": "joint",
+      "type": "lesson",
+      "label": "ポワント強化",
+      "tags": [],
+      "target": "希望者",
+      "note": "4月中の火曜 19:00〜19:30 (LINE 通知より)"
+    },
+    {
+      "date": "2026-04-16",
+      "start": "17:30",
+      "end": "19:00",
+      "studio": "kawagoe",
+      "type": "lesson",
+      "label": "通常クラス (木)",
+      "tags": [],
+      "target": "全員",
+      "note": "4月中の木曜 (LINE 通知より)"
+    },
+    {
+      "date": "2026-04-16",
+      "start": "19:00",
+      "end": "19:30",
+      "studio": "kawagoe",
+      "type": "lesson",
+      "label": "通常クラス (4年生以上)",
+      "tags": [],
+      "target": "4年生以上",
+      "note": "4月中は 4年生以上のみ 19:30まで (LINE 通知より)"
+    },
     {
       "date": "2026-04-18",
       "start": "10:00",
@@ -90,6 +200,50 @@
       "note": "川越・小手指合同 (海賊は全て合同)"
     },
     {
+      "date": "2026-04-21",
+      "start": "17:30",
+      "end": "19:00",
+      "studio": "joint",
+      "type": "lesson",
+      "label": "合同クラス",
+      "tags": [],
+      "target": "全員",
+      "note": "4月中の火曜は合同クラス (LINE 通知より)"
+    },
+    {
+      "date": "2026-04-21",
+      "start": "19:00",
+      "end": "19:30",
+      "studio": "joint",
+      "type": "lesson",
+      "label": "ポワント強化",
+      "tags": [],
+      "target": "希望者",
+      "note": "4月中の火曜 19:00〜19:30 (LINE 通知より)"
+    },
+    {
+      "date": "2026-04-23",
+      "start": "17:30",
+      "end": "19:00",
+      "studio": "kawagoe",
+      "type": "lesson",
+      "label": "通常クラス (木)",
+      "tags": [],
+      "target": "全員",
+      "note": "4月中の木曜 (LINE 通知より)"
+    },
+    {
+      "date": "2026-04-23",
+      "start": "19:00",
+      "end": "19:30",
+      "studio": "kawagoe",
+      "type": "lesson",
+      "label": "通常クラス (4年生以上)",
+      "tags": [],
+      "target": "4年生以上",
+      "note": "4月中は 4年生以上のみ 19:30まで (LINE 通知より)"
+    },
+    {
       "date": "2026-04-25",
       "start": "10:00",
       "end": "12:00",
@@ -151,6 +305,28 @@
       "note": "海賊は全て合同"
     },
     {
+      "date": "2026-04-28",
+      "start": "17:30",
+      "end": "19:00",
+      "studio": "joint",
+      "type": "lesson",
+      "label": "合同クラス",
+      "tags": [],
+      "target": "全員",
+      "note": "4月中の火曜は合同クラス (LINE 通知より)"
+    },
+    {
+      "date": "2026-04-28",
+      "start": "19:00",
+      "end": "19:30",
+      "studio": "joint",
+      "type": "lesson",
+      "label": "ポワント強化",
+      "tags": [],
+      "target": "希望者",
+      "note": "4月中の火曜 19:00〜19:30 (LINE 通知より)"
+    },
+    {
       "date": "2026-04-29",
       "start": "10:00",
       "end": "11:30",
@@ -193,6 +369,28 @@
       "tags": ["海賊"],
       "target": "海賊出演者",
       "note": "川越・小手指合同 (海賊は全て合同)"
+    },
+    {
+      "date": "2026-04-30",
+      "start": "17:30",
+      "end": "19:00",
+      "studio": "kawagoe",
+      "type": "lesson",
+      "label": "通常クラス (木)",
+      "tags": [],
+      "target": "全員",
+      "note": "4月中の木曜 (LINE 通知より)"
+    },
+    {
+      "date": "2026-04-30",
+      "start": "19:00",
+      "end": "19:30",
+      "studio": "kawagoe",
+      "type": "lesson",
+      "label": "通常クラス (4年生以上)",
+      "tags": [],
+      "target": "4年生以上",
+      "note": "4月中は 4年生以上のみ 19:30まで (LINE 通知より)"
     }
   ]
 }
