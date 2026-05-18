@@ -715,6 +715,134 @@
     font-size: 11px;
     margin-top: 2px;
   }
+
+  /* ─── Edit mode (within day sheet) ─── */
+  .edit-day-btn {
+    background: var(--accent-soft);
+    border: 1.5px solid var(--accent);
+    color: var(--accent-deep);
+    border-radius: 999px;
+    padding: 4px 14px;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    font-weight: 600;
+    margin-left: 8px;
+  }
+  .edit-day-btn:active { background: var(--accent); color: white; }
+
+  .edit-list { margin: 14px 0 10px; }
+  .edit-row {
+    background: var(--card);
+    border: 1.5px solid var(--line);
+    border-left: 4px solid var(--studio-color, var(--accent));
+    border-radius: 10px;
+    padding: 10px;
+    margin-bottom: 8px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    align-items: start;
+  }
+  .edit-fields {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 6px 6px;
+    align-items: center;
+    min-width: 0;
+  }
+  .edit-fields .row-full {
+    grid-column: 1 / -1;
+  }
+  .edit-fields input[type="time"],
+  .edit-fields input[type="text"],
+  .edit-fields select,
+  .edit-fields textarea {
+    border: 1.5px solid var(--line);
+    border-radius: 8px;
+    padding: 6px 8px;
+    font-size: 13px;
+    font-family: inherit;
+    background: var(--card);
+    color: var(--fg);
+    width: 100%;
+    min-width: 0;
+  }
+  .edit-fields input:focus,
+  .edit-fields select:focus,
+  .edit-fields textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .edit-fields .edit-dash {
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .edit-fields textarea {
+    resize: vertical;
+    min-height: 36px;
+    font-size: 12px;
+  }
+  .edit-del {
+    background: none;
+    border: 1.5px solid var(--line);
+    color: #c92a2a;
+    border-radius: 50%;
+    width: 30px; height: 30px;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    font-family: inherit;
+    align-self: start;
+  }
+  .edit-del:active { background: #fde8e8; }
+  .edit-add-btn {
+    width: 100%;
+    background: var(--card);
+    border: 1.5px dashed var(--accent);
+    border-radius: 10px;
+    padding: 10px;
+    color: var(--accent-deep);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    margin: 4px 0 12px;
+  }
+  .edit-add-btn:active { background: var(--accent-soft); }
+  .edit-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .edit-actions button {
+    flex: 1;
+    background: var(--card);
+    border: 1.5px solid var(--accent-soft);
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 14px;
+    color: var(--accent-deep);
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 500;
+  }
+  .edit-actions button.primary {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+  .edit-actions button:disabled { opacity: 0.5; cursor: default; }
+  .edit-status {
+    font-size: 12px;
+    margin-top: 8px;
+    padding: 8px 10px;
+    border-radius: 6px;
+  }
+  .edit-status.error { background: #fde8e8; color: #c92a2a; }
+  .edit-status.success { background: #e6f6e6; color: #2b8a2b; }
+  .edit-status.info { background: var(--accent-soft); color: var(--accent-deep); }
 </style>
 </head>
 <body>
@@ -1265,6 +1393,17 @@ function openDaySheet(date) {
     </div>
     <div class="sheet-day-summary">${visible.length === 0 ? '予定なし' : `予定 ${visible.length} 件`}</div>
   `;
+  // Edit button (only when user has upload key + API configured)
+  if (getUploadKey() && API_BASE_URL) {
+    const editBtn = document.createElement('button');
+    editBtn.className = 'edit-day-btn';
+    editBtn.textContent = '編集';
+    editBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      enterEditMode(date);
+    });
+    head.querySelector('.sheet-day-num').appendChild(editBtn);
+  }
   content.appendChild(head);
 
   if (visible.length === 0) {
@@ -1465,6 +1604,261 @@ function bindSheet() {
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c =>
     ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
+/* ────────────────────────────────────────────────────────
+ * Edit mode (within day sheet, requires upload key)
+ * ──────────────────────────────────────────────────────── */
+
+let EDIT_STATE = null; // { date: 'YYYY-MM-DD', items: [...], saving: bool }
+
+function enterEditMode(date) {
+  const iso = isoLocal(date);
+  const items = eventsForDate(iso).map(it => ({ ...it, tags: it.tags ? [...it.tags] : [] }));
+  EDIT_STATE = { date: iso, dateObj: date, items, saving: false };
+  renderEditMode();
+}
+
+function exitEditMode() {
+  if (!EDIT_STATE) return;
+  const dateObj = EDIT_STATE.dateObj;
+  EDIT_STATE = null;
+  if (dateObj) openDaySheet(dateObj);
+}
+
+function renderEditMode() {
+  const content = document.getElementById('sheet-content');
+  content.innerHTML = '';
+
+  const date = EDIT_STATE.dateObj;
+  const wd = date.getDay();
+  const numCls = wd === 0 ? ' sun' : wd === 6 ? ' sat' : '';
+
+  const head = document.createElement('div');
+  head.className = 'sheet-day-head';
+  head.innerHTML = `
+    <div class="sheet-day-num${numCls}">
+      <span>${date.getMonth()+1}月${date.getDate()}日</span>
+      <span class="wd">${WEEKDAY_JP[wd]} を編集</span>
+    </div>
+    <div class="sheet-day-summary">時間・場所・演目を変更、 削除、 追加できます</div>
+  `;
+  content.appendChild(head);
+
+  const list = document.createElement('div');
+  list.className = 'edit-list';
+  EDIT_STATE.items.forEach((it, idx) => list.appendChild(buildEditRow(it, idx)));
+  content.appendChild(list);
+
+  const addBtn = document.createElement('button');
+  addBtn.className = 'edit-add-btn';
+  addBtn.textContent = '+ 予定を追加';
+  addBtn.addEventListener('click', () => {
+    EDIT_STATE.items.push({
+      date: EDIT_STATE.date,
+      start: '13:00',
+      end: '14:00',
+      studio: 'kawagoe',
+      type: 'rehearsal',
+      label: '',
+      tags: [],
+    });
+    renderEditMode();
+  });
+  content.appendChild(addBtn);
+
+  const status = document.createElement('div');
+  status.id = 'edit-status';
+  content.appendChild(status);
+
+  const actions = document.createElement('div');
+  actions.className = 'edit-actions';
+  const cancelBtn = document.createElement('button');
+  cancelBtn.textContent = 'キャンセル';
+  cancelBtn.addEventListener('click', exitEditMode);
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'primary';
+  saveBtn.textContent = '保存';
+  saveBtn.addEventListener('click', saveEdits);
+  actions.appendChild(cancelBtn);
+  actions.appendChild(saveBtn);
+  content.appendChild(actions);
+}
+
+function buildEditRow(it, idx) {
+  const studio = META.studios[it.studio] || { color: 'var(--accent)' };
+  const row = document.createElement('div');
+  row.className = 'edit-row';
+  row.style.setProperty('--studio-color', studio.color);
+
+  const fields = document.createElement('div');
+  fields.className = 'edit-fields';
+
+  // time row
+  const startIn = makeInput('time', it.start || '13:00');
+  const dash = document.createElement('span');
+  dash.className = 'edit-dash';
+  dash.textContent = '〜';
+  const endIn = makeInput('time', it.end || '14:00');
+  fields.appendChild(startIn);
+  fields.appendChild(dash);
+  fields.appendChild(endIn);
+
+  // studio
+  const studioSel = makeSelect(Object.entries(META.studios).map(([k, v]) => ({ value: k, label: v.name })), it.studio);
+  studioSel.classList.add('row-full');
+  fields.appendChild(studioSel);
+
+  // type
+  const typeSel = makeSelect(Object.entries(META.types).map(([k, v]) => ({ value: k, label: v.symbol + ' ' + v.name })), it.type);
+  typeSel.classList.add('row-full');
+  fields.appendChild(typeSel);
+
+  // label
+  const labelIn = makeInput('text', it.label || '');
+  labelIn.placeholder = '演目・クラス名 (例: 海賊、 合同クラス)';
+  labelIn.classList.add('row-full');
+  fields.appendChild(labelIn);
+
+  // note (optional)
+  const noteIn = document.createElement('textarea');
+  noteIn.value = it.note || '';
+  noteIn.placeholder = 'メモ (任意)';
+  noteIn.rows = 1;
+  noteIn.classList.add('row-full');
+  fields.appendChild(noteIn);
+
+  // bind: write back to the underlying item
+  const bind = (el, field) => {
+    el.addEventListener('change', () => { it[field] = el.value; });
+    el.addEventListener('input', () => { it[field] = el.value; });
+  };
+  bind(startIn, 'start');
+  bind(endIn, 'end');
+  bind(labelIn, 'label');
+  bind(noteIn, 'note');
+  studioSel.addEventListener('change', () => {
+    it.studio = studioSel.value;
+    const ns = META.studios[it.studio];
+    if (ns) row.style.setProperty('--studio-color', ns.color);
+  });
+  typeSel.addEventListener('change', () => { it.type = typeSel.value; });
+
+  row.appendChild(fields);
+
+  const del = document.createElement('button');
+  del.className = 'edit-del';
+  del.textContent = '✕';
+  del.title = '削除';
+  del.addEventListener('click', () => {
+    if (!confirm(`「${it.label || '(無題)'}」 を削除しますか?`)) return;
+    EDIT_STATE.items.splice(idx, 1);
+    renderEditMode();
+  });
+  row.appendChild(del);
+
+  return row;
+}
+
+function makeInput(type, value) {
+  const i = document.createElement('input');
+  i.type = type;
+  i.value = value;
+  return i;
+}
+
+function makeSelect(options, current) {
+  const sel = document.createElement('select');
+  for (const opt of options) {
+    const o = document.createElement('option');
+    o.value = opt.value;
+    o.textContent = opt.label;
+    if (opt.value === current) o.selected = true;
+    sel.appendChild(o);
+  }
+  return sel;
+}
+
+function setEditStatus(text, kind = 'info') {
+  const el = document.getElementById('edit-status');
+  if (!el) return;
+  el.innerHTML = '';
+  if (!text) return;
+  const div = document.createElement('div');
+  div.className = 'edit-status ' + kind;
+  div.textContent = text;
+  el.appendChild(div);
+}
+
+async function saveEdits() {
+  if (!EDIT_STATE) return;
+
+  // Validate
+  for (const it of EDIT_STATE.items) {
+    if (!it.label || !it.label.trim()) {
+      setEditStatus('「演目・クラス名」 が空の予定があります', 'error');
+      return;
+    }
+    if (!/^\d{1,2}:\d{2}$/.test(it.start) || !/^\d{1,2}:\d{2}$/.test(it.end)) {
+      setEditStatus('時刻の形式が正しくありません', 'error');
+      return;
+    }
+    if (!META.studios[it.studio]) {
+      setEditStatus('スタジオの選択が不正です', 'error');
+      return;
+    }
+    if (!META.types[it.type]) {
+      setEditStatus('種別の選択が不正です', 'error');
+      return;
+    }
+    // Clean up: ensure date
+    it.date = EDIT_STATE.date;
+    if (!Array.isArray(it.tags)) it.tags = [];
+    if (it.note === '' || it.note == null) delete it.note;
+  }
+
+  const key = getUploadKey();
+  if (!API_BASE_URL || !key) {
+    setEditStatus('編集権限なし (URL の #key= が必要)', 'error');
+    return;
+  }
+
+  // Rebuild full month events: keep other days + this day's new items
+  const otherDays = (MONTH_DATA.events || []).filter(ev => ev.date !== EDIT_STATE.date);
+  const newEvents = [...otherDays, ...EDIT_STATE.items];
+  newEvents.sort((a,b) => (a.date+a.start).localeCompare(b.date+b.start));
+
+  const payload = {
+    month: CURRENT_MONTH,
+    month_label: formatMonthLabel(CURRENT_MONTH),
+    generated_at: isoLocal(new Date()),
+    source: MONTH_DATA.source || 'edited via app',
+    events: newEvents,
+  };
+
+  setEditStatus('保存中…', 'info');
+  EDIT_STATE.saving = true;
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/upload?month=${CURRENT_MONTH}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Upload-Key': key,
+      },
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error((json.error || '') + (json.detail ? ': ' + json.detail : ''));
+
+    const savedDateObj = EDIT_STATE.dateObj;
+    EDIT_STATE = null;
+    await loadMonth(CURRENT_MONTH);
+    openDaySheet(savedDateObj);
+  } catch (e) {
+    EDIT_STATE.saving = false;
+    setEditStatus('保存失敗: ' + e.message, 'error');
+  }
 }
 
 /* ────────────────────────────────────────────────────────
