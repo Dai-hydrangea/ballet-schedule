@@ -1,0 +1,13 @@
+name = "ballet-schedule-api"
+main = "worker.js"
+compatibility_date = "2026-05-18"
+
+# KV namespace (アップロードされた events を保存)
+# `wrangler kv:namespace create BALLET_KV` で作成して ID をここに貼る
+[[kv_namespaces]]
+binding = "BALLET_KV"
+id = "PASTE_KV_NAMESPACE_ID_HERE"
+
+# Secret は CLI で個別設定:
+#   wrangler secret put UPLOAD_KEY
+# (アップロード用パスワード、 家族と共有する URL ハッシュ に同じ値を使う)

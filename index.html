@@ -539,12 +539,171 @@
     .cal-cell { min-height: 96px; }
     .cal-cell .ev-line { font-size: 10px; }
   }
+
+  /* ─── Import modal ─── */
+  .import-toggle {
+    position: absolute;
+    top: 10px; right: 14px;
+    background: var(--card);
+    border: 1.5px solid var(--accent-soft);
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-size: 11px;
+    color: var(--accent-deep);
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: var(--shadow-soft);
+    display: none;
+  }
+  .import-toggle.visible { display: inline-block; }
+  .import-toggle:active { background: var(--accent-soft); }
+
+  .import-tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1.5px solid var(--line);
+    margin-bottom: 12px;
+  }
+  .import-tabs button {
+    flex: 1;
+    background: none;
+    border: none;
+    padding: 8px 4px;
+    font-size: 12px;
+    color: var(--muted);
+    font-family: inherit;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1.5px;
+  }
+  .import-tabs button.active {
+    color: var(--accent-deep);
+    border-bottom-color: var(--accent);
+    font-weight: 600;
+  }
+  .import-pane {
+    display: none;
+  }
+  .import-pane.active { display: block; }
+  .import-pane textarea {
+    width: 100%;
+    min-height: 200px;
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    padding: 10px;
+    font-family: 'Menlo', 'Consolas', monospace;
+    font-size: 12px;
+    color: var(--fg);
+    resize: vertical;
+    background: var(--bg-soft);
+  }
+  .import-pane textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .import-hint {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    line-height: 1.5;
+  }
+  .import-month-pick {
+    margin: 10px 0;
+    font-size: 12px;
+  }
+  .import-month-pick label {
+    color: var(--muted);
+    margin-right: 6px;
+  }
+  .import-month-pick select {
+    border: 1.5px solid var(--line);
+    border-radius: 8px;
+    padding: 4px 8px;
+    font-family: inherit;
+    background: var(--card);
+    color: var(--fg);
+  }
+  .import-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .import-actions button {
+    flex: 1;
+    min-width: 120px;
+    background: var(--card);
+    border: 1.5px solid var(--accent-soft);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--accent-deep);
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 500;
+  }
+  .import-actions button.primary {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+  .import-actions button:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  .import-status {
+    font-size: 12px;
+    margin-top: 8px;
+    padding: 8px 10px;
+    border-radius: 6px;
+  }
+  .import-status.info {
+    background: var(--accent-soft);
+    color: var(--accent-deep);
+  }
+  .import-status.error {
+    background: #fde8e8;
+    color: #c92a2a;
+  }
+  .import-status.success {
+    background: #e6f6e6;
+    color: #2b8a2b;
+  }
+  .preview-list {
+    margin-top: 10px;
+    max-height: 240px;
+    overflow-y: auto;
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    padding: 6px;
+    background: var(--bg-soft);
+  }
+  .preview-item {
+    background: var(--card);
+    border-left: 3px solid var(--studio-color, var(--accent));
+    border-radius: 6px;
+    padding: 6px 10px;
+    margin-bottom: 4px;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  .preview-item .pv-date {
+    font-weight: 600;
+    color: var(--accent-deep);
+    margin-right: 6px;
+  }
+  .preview-item .pv-meta {
+    color: var(--muted);
+    font-size: 11px;
+    margin-top: 2px;
+  }
 </style>
 </head>
 <body>
 
 <header class="app-head">
   <div class="app-title">バレエスタジオ予定表</div>
+  <button class="import-toggle" id="import-toggle" aria-label="取り込み">取り込み</button>
   <div class="month-nav">
     <button id="prev-month" aria-label="前の月">◀</button>
     <div class="month-current">
@@ -611,6 +770,66 @@
   <div id="sheet-content"></div>
 </div>
 
+<!-- Import modal -->
+<div class="sheet-backdrop" id="import-backdrop"></div>
+<div class="sheet" id="import-sheet" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="sheet-handle"></div>
+  <button class="sheet-close" id="import-close" aria-label="閉じる">✕</button>
+  <div class="sheet-day-head">
+    <div class="sheet-day-num"><span>予定の取り込み</span></div>
+    <div class="sheet-day-summary">LINE / PDF / Claude が出した JSON を月のデータに反映</div>
+  </div>
+
+  <div class="import-month-pick">
+    <label for="import-month">対象月:</label>
+    <select id="import-month"></select>
+  </div>
+
+  <div class="import-tabs">
+    <button data-tab="json" class="active">JSON</button>
+    <button data-tab="text">テキスト</button>
+    <button data-tab="pdf">PDF</button>
+  </div>
+
+  <div class="import-pane active" data-pane="json">
+    <div class="import-hint">
+      Claude や ChatGPT に「これを events 配列の JSON にして」 と頼んだ結果を貼り付け。
+      <br>形式: <code>{ "events": [ ... ] }</code> または <code>[ ... ]</code> (配列のみ可)
+    </div>
+    <textarea id="import-json" placeholder='{"events": [{"date":"2026-06-07","start":"13:00","end":"15:30","studio":"kawagoe","type":"rehearsal","label":"海賊","tags":["海賊"]}]}'></textarea>
+  </div>
+
+  <div class="import-pane" data-pane="text">
+    <div class="import-hint">
+      LINE 文面や PDF のテキストをコピペ。 「○日(曜) HH:MM〜HH:MM 演目」 形式を自動認識。
+      <br>例: <code>10日(日) 13:00~15:30 ディアナ、 トロワ</code>
+    </div>
+    <textarea id="import-text" placeholder="川越スタジオ リハーサル予定&#10;&#10;10日(日) 13:00~15:30 ディアナ、 トロワ&#10;17日(日) 13:30~15:30 海賊&#10;        15:30~17:30 海賊 Va"></textarea>
+  </div>
+
+  <div class="import-pane" data-pane="pdf">
+    <div class="import-hint">
+      PDF ファイル (= スタジオの正式予定 PDF など)。 ブラウザ内でテキスト抽出 → 自動認識。
+      <br>初回は PDF.js のロードに数秒。
+    </div>
+    <input type="file" id="import-pdf" accept="application/pdf" style="margin: 10px 0; font-family: inherit;">
+  </div>
+
+  <div class="import-actions">
+    <button id="import-parse">プレビュー生成</button>
+    <button id="import-merge" class="primary" disabled>この月にマージ</button>
+    <button id="import-replace" disabled>丸ごと置き換え</button>
+  </div>
+
+  <div id="import-status"></div>
+  <div id="import-preview" class="preview-list" hidden></div>
+
+  <div class="import-actions" style="margin-top: 8px;">
+    <button id="import-download" disabled>JSON ダウンロード</button>
+    <button id="import-upload" class="primary" disabled>サーバにアップロード</button>
+  </div>
+</div>
+
 <script>
 'use strict';
 
@@ -636,9 +855,15 @@ let MONTH_DATA = null;
 let CURRENT_MONTH = null; // "YYYY-MM"
 let HOUR_HEIGHT = 36;
 
-const BUILD_VERSION = '20260518-v4';
+const BUILD_VERSION = '20260518-v5';
 const MONTH_RANGE_MIN = '2026-04';
 const MONTH_RANGE_MAX = '2030-12';
+
+// Cloudflare Worker URL (デプロイ後にここを書き換える)
+const API_BASE_URL = '';
+const UPLOAD_KEY_STORAGE = 'ballet-upload-key';
+
+let CURRENT_PREVIEW = null; // { month, events, mode: 'merge'|'replace' }
 
 const filterState = {
   studios: new Set(),
@@ -660,6 +885,7 @@ async function bootstrap() {
     bindSheet();
     bindMonthNav();
     bindSwipe();
+    bindImportModal();
     renderCalendarHeads();
 
     const initialMonth = pickInitialMonth();
@@ -684,20 +910,36 @@ async function loadMonth(yyyy_mm) {
   document.getElementById('month-meta').textContent = '読み込み中…';
   updateNavButtons();
 
-  try {
-    const res = await fetch(`./data/${yyyy_mm}.json?v=${BUILD_VERSION}`, { cache: 'no-store' });
-    if (res.ok) {
-      MONTH_DATA = await res.json();
-    } else {
-      MONTH_DATA = makeEmptyMonth(yyyy_mm);
-    }
-  } catch (e) {
-    MONTH_DATA = makeEmptyMonth(yyyy_mm);
+  let data = null;
+  let source = '';
+
+  // 1. Try Worker API first (KV-backed, latest uploads)
+  if (API_BASE_URL) {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/data/${yyyy_mm}`, { cache: 'no-store' });
+      if (res.ok) {
+        data = await res.json();
+        source = 'KV';
+      }
+    } catch (e) { /* fall through to static */ }
   }
+
+  // 2. Fallback to static file in repo
+  if (!data) {
+    try {
+      const res = await fetch(`./data/${yyyy_mm}.json?v=${BUILD_VERSION}`, { cache: 'no-store' });
+      if (res.ok) {
+        data = await res.json();
+        source = 'static';
+      }
+    } catch (e) { /* empty */ }
+  }
+
+  MONTH_DATA = data || makeEmptyMonth(yyyy_mm);
 
   document.getElementById('month-meta').textContent =
     MONTH_DATA.events.length > 0
-      ? `予定 ${MONTH_DATA.events.length} 件  ·  ${MONTH_DATA.source || '出典未記載'}`
+      ? `予定 ${MONTH_DATA.events.length} 件  ·  ${MONTH_DATA.source || (source === 'KV' ? 'KV upload' : '出典未記載')}`
       : 'この月の予定はまだ登録されていません';
 
   const allPieces = collectPieces();
@@ -1227,6 +1469,398 @@ function bindSheet() {
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c =>
     ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
+/* ────────────────────────────────────────────────────────
+ * Import: auth, modal, parsing, preview, upload/download
+ * ──────────────────────────────────────────────────────── */
+
+function captureUploadKeyFromHash() {
+  // URL: ...#key=XXXX  → localStorage に保存
+  const hash = window.location.hash || '';
+  const m = hash.match(/key=([^&]+)/);
+  if (m) {
+    const key = decodeURIComponent(m[1]);
+    try { localStorage.setItem(UPLOAD_KEY_STORAGE, key); } catch (e) {}
+    // Strip key from URL (history clean)
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+  }
+}
+
+function getUploadKey() {
+  try { return localStorage.getItem(UPLOAD_KEY_STORAGE); } catch (e) { return null; }
+}
+
+function bindImportModal() {
+  captureUploadKeyFromHash();
+  const toggle = document.getElementById('import-toggle');
+  if (getUploadKey()) toggle.classList.add('visible');
+
+  toggle.addEventListener('click', openImportSheet);
+  document.getElementById('import-close').addEventListener('click', closeImportSheet);
+  document.getElementById('import-backdrop').addEventListener('click', closeImportSheet);
+
+  // Tabs
+  document.querySelectorAll('.import-tabs button').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.import-tabs button').forEach(x => x.classList.toggle('active', x === b));
+      document.querySelectorAll('.import-pane').forEach(p => {
+        p.classList.toggle('active', p.dataset.pane === b.dataset.tab);
+      });
+      clearImportStatus();
+    });
+  });
+
+  // Actions
+  document.getElementById('import-parse').addEventListener('click', handleParse);
+  document.getElementById('import-merge').addEventListener('click', () => commitPreview('merge'));
+  document.getElementById('import-replace').addEventListener('click', () => commitPreview('replace'));
+  document.getElementById('import-download').addEventListener('click', downloadCurrentPreview);
+  document.getElementById('import-upload').addEventListener('click', uploadCurrentPreview);
+}
+
+function openImportSheet() {
+  // Populate month picker
+  const sel = document.getElementById('import-month');
+  sel.innerHTML = '';
+  const [y, m] = CURRENT_MONTH.split('-').map(Number);
+  for (let i = -2; i <= 6; i++) {
+    const d = new Date(y, m - 1 + i, 1);
+    const ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    if (ym < MONTH_RANGE_MIN || ym > MONTH_RANGE_MAX) continue;
+    const opt = document.createElement('option');
+    opt.value = ym;
+    opt.textContent = formatMonthLabel(ym);
+    if (ym === CURRENT_MONTH) opt.selected = true;
+    sel.appendChild(opt);
+  }
+
+  clearImportStatus();
+  document.getElementById('import-preview').hidden = true;
+  ['import-merge','import-replace','import-download','import-upload'].forEach(id => {
+    document.getElementById(id).disabled = true;
+  });
+  CURRENT_PREVIEW = null;
+
+  const sheet = document.getElementById('import-sheet');
+  const backdrop = document.getElementById('import-backdrop');
+  sheet.classList.add('show');
+  backdrop.classList.add('show');
+  sheet.setAttribute('aria-hidden', 'false');
+}
+
+function closeImportSheet() {
+  const sheet = document.getElementById('import-sheet');
+  const backdrop = document.getElementById('import-backdrop');
+  sheet.classList.remove('show');
+  backdrop.classList.remove('show');
+  sheet.setAttribute('aria-hidden', 'true');
+}
+
+function setImportStatus(text, kind = 'info') {
+  const el = document.getElementById('import-status');
+  el.innerHTML = '';
+  if (!text) return;
+  const div = document.createElement('div');
+  div.className = 'import-status ' + kind;
+  div.textContent = text;
+  el.appendChild(div);
+}
+
+function clearImportStatus() {
+  document.getElementById('import-status').innerHTML = '';
+}
+
+/* ───── Parsers ───── */
+
+async function handleParse() {
+  clearImportStatus();
+  const activePane = document.querySelector('.import-pane.active').dataset.pane;
+  const month = document.getElementById('import-month').value;
+  let events = [];
+  try {
+    if (activePane === 'json') {
+      events = parseJsonInput(document.getElementById('import-json').value);
+    } else if (activePane === 'text') {
+      events = parseTextInput(document.getElementById('import-text').value, month);
+    } else if (activePane === 'pdf') {
+      const file = document.getElementById('import-pdf').files[0];
+      if (!file) throw new Error('PDF ファイルを選択してください');
+      const text = await extractPdfText(file);
+      events = parseTextInput(text, month);
+    }
+  } catch (e) {
+    setImportStatus('パース失敗: ' + e.message, 'error');
+    return;
+  }
+
+  if (events.length === 0) {
+    setImportStatus('events が 0 件でした。 入力を確認してください', 'error');
+    return;
+  }
+
+  // Filter events to the chosen month (sanity)
+  const monthEvents = events.filter(ev => ev.date && ev.date.startsWith(month));
+  const skipped = events.length - monthEvents.length;
+
+  CURRENT_PREVIEW = { month, events: monthEvents };
+  renderPreview(monthEvents);
+  ['import-merge','import-replace','import-download'].forEach(id => {
+    document.getElementById(id).disabled = false;
+  });
+  if (getUploadKey() && API_BASE_URL) {
+    document.getElementById('import-upload').disabled = false;
+  }
+  const msg = `${monthEvents.length} 件パース成功` + (skipped > 0 ? ` (${skipped} 件は対象月外でスキップ)` : '');
+  setImportStatus(msg, 'success');
+}
+
+function parseJsonInput(raw) {
+  const text = raw.trim();
+  if (!text) throw new Error('JSON を貼り付けてください');
+  let obj;
+  try { obj = JSON.parse(text); } catch (e) { throw new Error('JSON 構文エラー: ' + e.message); }
+  let events;
+  if (Array.isArray(obj)) events = obj;
+  else if (Array.isArray(obj.events)) events = obj.events;
+  else throw new Error('events 配列が見つかりません');
+  return events.map(normalizeEvent);
+}
+
+function normalizeEvent(e) {
+  if (!e || typeof e !== 'object') throw new Error('event が object でない');
+  const norm = {
+    date: e.date,
+    start: e.start || '',
+    end: e.end || '',
+    studio: e.studio || guessStudio(e.label || ''),
+    type: e.type || guessType(e.label || ''),
+    label: e.label || '',
+    tags: Array.isArray(e.tags) ? e.tags : [],
+    target: e.target || '',
+  };
+  if (e.note) norm.note = e.note;
+  return norm;
+}
+
+const PIECE_KEYWORDS = ['海賊','オーロラ','道化','貴婦人','宝石','ディアナ','トロワ','ガムザ','グルナーラ','パドゥドゥ','Bell','Va','ヴァリエーション','ピラティス','シス','小姓'];
+
+function guessType(label) {
+  const l = label || '';
+  if (PIECE_KEYWORDS.some(k => l.includes(k))) return 'rehearsal';
+  if (l.includes('振付')) return 'choreography';
+  return 'lesson';
+}
+
+function guessStudio(label) {
+  const l = label || '';
+  if (l.includes('海賊') || l.includes('合同')) return 'joint';
+  return 'kawagoe';
+}
+
+function extractTags(label) {
+  const found = [];
+  for (const k of PIECE_KEYWORDS) {
+    if (label.includes(k)) found.push(k === 'Va' ? 'ヴァリエーション' : k);
+  }
+  return [...new Set(found)];
+}
+
+function parseTextInput(raw, defaultMonth) {
+  const [y, m] = defaultMonth.split('-').map(Number);
+  const lines = raw.split(/\r?\n/);
+  const events = [];
+
+  let currentDate = null;
+  let currentNote = '';
+
+  // Pattern: "10日(日)", "10日（日）", "10 日(日)", "10土", "10日"
+  const dateRe = /^\s*(\d{1,2})\s*日?\s*[\(（]?\s*(日|月|火|水|木|金|土)?\s*[\)）]?\s*(.*)$/;
+  // Pattern: "13:00~15:30 ラベル" or "13:00〜15:30 ラベル" or "1:30~3:00 ラベル"
+  const timeRe = /(\d{1,2}):(\d{2})\s*[~〜\-–−]\s*(\d{1,2}):(\d{2})\s*(.+)?/;
+
+  for (let raw of lines) {
+    const line = raw.trim();
+    if (!line) continue;
+
+    // Try date header
+    const dm = line.match(/^(\d{1,2})\s*日?[\(（]?(日|月|火|水|木|金|土)[\)）]?(.*)$/);
+    if (dm) {
+      const day = parseInt(dm[1], 10);
+      if (day >= 1 && day <= 31) {
+        currentDate = `${y}-${String(m).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+        currentNote = (dm[3] || '').trim();
+        // The rest of the line might contain time entry too
+        const after = dm[3] || '';
+        const tm = after.match(timeRe);
+        if (tm) {
+          events.push(makeEventFromMatch(currentDate, tm, currentNote));
+        }
+        continue;
+      }
+    }
+
+    // Try time line (continues for the current date)
+    if (currentDate) {
+      const tm = line.match(timeRe);
+      if (tm) {
+        events.push(makeEventFromMatch(currentDate, tm, currentNote));
+      }
+    }
+  }
+
+  return events;
+}
+
+function makeEventFromMatch(date, tm, contextNote) {
+  const sh = parseInt(tm[1], 10);
+  const sm = parseInt(tm[2], 10);
+  const eh = parseInt(tm[3], 10);
+  const em = parseInt(tm[4], 10);
+  // PM heuristic: if hour <= 9 in a context like "1:30" (under 10), treat as PM (13:30)
+  const start = `${String(sh < 10 && tm[1].length === 1 ? sh + 12 : sh).padStart(2,'0')}:${String(sm).padStart(2,'0')}`;
+  const end = `${String(eh < 10 && tm[3].length === 1 ? eh + 12 : eh).padStart(2,'0')}:${String(em).padStart(2,'0')}`;
+  const label = (tm[5] || '').trim().replace(/^[、・\s]+|[、・\s]+$/g, '');
+  const tags = extractTags(label);
+  const type = guessType(label);
+  const studio = guessStudio(label + ' ' + (contextNote || ''));
+  const ev = { date, start, end, studio, type, label, tags };
+  const noteParts = [];
+  if (contextNote && /合同|川越|小手指|所沢/.test(contextNote)) noteParts.push(contextNote);
+  if (noteParts.length > 0) ev.note = noteParts.join(' ');
+  return ev;
+}
+
+/* ───── PDF.js (dynamic load) ───── */
+
+let _pdfjs = null;
+async function loadPdfJs() {
+  if (_pdfjs) return _pdfjs;
+  const mod = await import('https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.min.mjs');
+  mod.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs';
+  _pdfjs = mod;
+  return mod;
+}
+
+async function extractPdfText(file) {
+  setImportStatus('PDF を解析中…', 'info');
+  const pdfjs = await loadPdfJs();
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjs.getDocument({ data: buf }).promise;
+  const pages = [];
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const content = await page.getTextContent();
+    const text = content.items.map(it => it.str).join('\n');
+    pages.push(text);
+  }
+  return pages.join('\n\n');
+}
+
+/* ───── Preview & commit ───── */
+
+function renderPreview(events) {
+  const wrap = document.getElementById('import-preview');
+  wrap.hidden = false;
+  wrap.innerHTML = '';
+  events.sort((a,b) => (a.date+a.start).localeCompare(b.date+b.start));
+  for (const ev of events) {
+    const studio = (META && META.studios[ev.studio]) || { color: 'var(--accent)', name: ev.studio };
+    const div = document.createElement('div');
+    div.className = 'preview-item';
+    div.style.setProperty('--studio-color', studio.color);
+    const dateLabel = ev.date.replace(/^\d{4}-/, '').replace(/-/, '/');
+    div.innerHTML = `
+      <div><span class="pv-date">${dateLabel}</span>${ev.start}–${ev.end} ${escapeHtml(ev.label)}</div>
+      <div class="pv-meta">${escapeHtml(studio.name)} · ${ev.type}${ev.tags && ev.tags.length ? ' · ' + ev.tags.join(',') : ''}${ev.note ? ' · note: ' + escapeHtml(ev.note) : ''}</div>
+    `;
+    wrap.appendChild(div);
+  }
+}
+
+function commitPreview(mode) {
+  if (!CURRENT_PREVIEW) return;
+  CURRENT_PREVIEW.mode = mode;
+  setImportStatus(`プレビューを「${mode === 'merge' ? 'マージ' : '丸ごと置き換え'}」 モードで確定。 ダウンロード or アップロードしてください`, 'info');
+}
+
+function buildFinalPayload() {
+  if (!CURRENT_PREVIEW) return null;
+  const { month, events, mode } = CURRENT_PREVIEW;
+  const decidedMode = mode || 'merge';
+  const isCurrentMonth = (month === CURRENT_MONTH);
+  let finalEvents;
+  if (decidedMode === 'replace' || !isCurrentMonth) {
+    finalEvents = events;
+  } else {
+    // merge: existing + new, dedup by (date,start,end,label)
+    const seen = new Set();
+    const all = [...(MONTH_DATA.events || []), ...events];
+    finalEvents = [];
+    for (const ev of all) {
+      const key = `${ev.date}|${ev.start}|${ev.end}|${ev.label}|${ev.studio}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      finalEvents.push(ev);
+    }
+  }
+  finalEvents.sort((a,b) => (a.date+a.start).localeCompare(b.date+b.start));
+  return {
+    month,
+    month_label: formatMonthLabel(month),
+    generated_at: isoLocal(new Date()),
+    source: 'imported via web UI',
+    events: finalEvents,
+  };
+}
+
+function downloadCurrentPreview() {
+  const payload = buildFinalPayload();
+  if (!payload) return;
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${payload.month}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  setImportStatus(`${payload.month}.json をダウンロードしました (${payload.events.length} 件)`, 'success');
+}
+
+async function uploadCurrentPreview() {
+  const payload = buildFinalPayload();
+  if (!payload) return;
+  const key = getUploadKey();
+  if (!API_BASE_URL) {
+    setImportStatus('API_BASE_URL が未設定です (デプロイ前)', 'error');
+    return;
+  }
+  if (!key) {
+    setImportStatus('アップロードキーが未設定。 #key=... 付き URL からアクセスしてください', 'error');
+    return;
+  }
+  setImportStatus('アップロード中…', 'info');
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/upload?month=${payload.month}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Upload-Key': key,
+      },
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error + (json.detail ? ': ' + json.detail : ''));
+    setImportStatus(`アップロード成功: ${payload.month} に ${json.count} 件保存。 リロードで反映`, 'success');
+    // Refresh if uploaded month is current
+    if (payload.month === CURRENT_MONTH) {
+      setTimeout(() => loadMonth(CURRENT_MONTH), 500);
+    }
+  } catch (e) {
+    setImportStatus('アップロード失敗: ' + e.message, 'error');
+  }
 }
 
 bootstrap();
