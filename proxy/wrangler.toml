@@ -6,7 +6,7 @@ compatibility_date = "2026-05-18"
 # `wrangler kv:namespace create BALLET_KV` で作成して ID をここに貼る
 [[kv_namespaces]]
 binding = "BALLET_KV"
-id = "PASTE_KV_NAMESPACE_ID_HERE"
+id = "74fa7db676d84ae69599ecb923ed2d8f"
 
 # Secret は CLI で個別設定:
 #   wrangler secret put UPLOAD_KEY
