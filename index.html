@@ -20,9 +20,7 @@
     --accent: #be185d;
     --sun: #dc2626;
     --sat: #2563eb;
-    --hour-h: 36px;     /* 1 時間あたりの高さ */
-    --time-start: 8;    /* 表示開始 (時) */
-    --time-end: 22;     /* 表示終了 (時) */
+    --hour-h: 36px;
   }
   * { box-sizing: border-box; }
   html, body {
@@ -32,27 +30,14 @@
     font-size: 15px; line-height: 1.5;
     -webkit-text-size-adjust: 100%;
   }
-  .sticky-top {
-    position: sticky;
-    top: 0;
-    z-index: 30;
-    background: var(--card);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    max-height: 70vh;
-    overflow-y: auto;
-  }
+
   header.app-head {
     padding: 10px 14px 6px;
     background: var(--card);
     border-bottom: 1px solid var(--line);
   }
-  h1 {
-    margin: 0; font-size: 15px; font-weight: 600;
-  }
-  .month-meta {
-    margin-top: 1px;
-    font-size: 11px; color: var(--muted);
-  }
+  h1 { margin: 0; font-size: 15px; font-weight: 600; }
+  .month-meta { margin-top: 1px; font-size: 11px; color: var(--muted); }
 
   /* Filters */
   .filters {
@@ -98,7 +83,6 @@
     cursor: pointer;
     font-family: inherit;
   }
-  .filter-actions button:active { background: var(--line); }
   .filter-buttons {
     display: flex; flex-wrap: wrap; gap: 5px;
     padding-bottom: 6px;
@@ -124,182 +108,209 @@
     padding-left: 8px;
   }
 
-  /* Mini calendar (compact, collapsible) */
-  .mini-cal-wrap {
-    background: var(--card);
-    border-bottom: 1px solid var(--line);
-    padding: 0 14px;
+  /* Main: big calendar */
+  main {
+    padding: 6px 6px 16px;
+    max-width: 720px;
+    margin: 0 auto;
   }
-  .mini-cal-wrap details {
-    padding: 6px 0;
-  }
-  .mini-cal-wrap summary {
-    font-size: 12px;
-    color: var(--fg);
-    font-weight: 500;
-    padding: 4px 0;
-  }
-  .mini-cal-wrap summary .hint {
-    font-size: 10px;
-    color: var(--muted);
-    font-weight: 400;
-    margin-left: auto;
-  }
-  .mini-cal-grid {
+  .cal-head-row {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 1px;
-    margin-top: 4px;
-    margin-bottom: 6px;
+    gap: 3px;
+    margin-bottom: 3px;
+    padding: 4px 0 2px;
   }
-  .mini-head {
+  .cal-head {
     text-align: center;
-    font-size: 9px; color: var(--muted);
-    padding: 2px 0 3px;
+    font-size: 10px;
+    color: var(--muted);
+    font-weight: 500;
+    letter-spacing: 0.05em;
   }
-  .mini-head.sun { color: var(--sun); }
-  .mini-head.sat { color: var(--sat); }
-  .mini-cell {
-    min-height: 26px;
-    border: 1px solid transparent;
-    border-radius: 4px;
+  .cal-head.sun { color: var(--sun); }
+  .cal-head.sat { color: var(--sat); }
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+  }
+  .cal-cell {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    min-height: 76px;
+    padding: 4px 4px 3px;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 4px;
+    flex-direction: column;
     font-size: 11px;
     cursor: pointer;
-    background: transparent;
-    color: var(--fg);
     position: relative;
+    transition: transform 0.1s, background 0.1s;
+    overflow: hidden;
   }
-  .mini-cell.empty {
+  .cal-cell.empty {
+    background: transparent;
+    border: none;
     cursor: default;
-    visibility: hidden;
   }
-  .mini-cell.no-events {
-    color: var(--muted);
+  .cal-cell.no-events {
     cursor: default;
+    background: transparent;
+    border-color: var(--line-soft);
   }
-  .mini-cell.has-events {
-    background: var(--card);
-    border-color: var(--line);
-  }
-  .mini-cell:active.has-events {
+  .cal-cell.no-events .day-num { color: var(--muted); font-weight: 400; }
+  .cal-cell.has-events:active {
+    transform: scale(0.97);
     background: var(--line-soft);
   }
-  .mini-cell.today {
+  .cal-cell.today {
     border-color: var(--accent);
-    box-shadow: inset 0 0 0 1px var(--accent);
-    font-weight: 700;
+    border-width: 2px;
+    padding: 3px 3px 2px;
   }
-  .mini-cell.exception::before {
+  .cal-cell.today .day-num { color: var(--accent); }
+  .cal-cell .day-num {
+    font-size: 13px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    margin-bottom: 3px;
+  }
+  .cal-cell .day-num.sun { color: var(--sun); }
+  .cal-cell .day-num.sat { color: var(--sat); }
+  .cal-cell .ev-line {
+    font-size: 9px;
+    line-height: 1.25;
+    border-left: 3px solid var(--studio-color);
+    background: var(--studio-bg);
+    padding: 1px 3px;
+    border-radius: 2px;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--fg);
+  }
+  .cal-cell .ev-more {
+    font-size: 9px;
+    color: var(--muted);
+    text-align: right;
+    margin-top: auto;
+    padding-top: 2px;
+  }
+  .cal-cell.exception::after {
     content: "";
     position: absolute;
     inset: 2px;
     background: repeating-linear-gradient(
       135deg,
       transparent 0 4px,
-      rgba(0,0,0,0.06) 4px 5px
+      rgba(0,0,0,0.05) 4px 5px
     );
     pointer-events: none;
-    border-radius: 3px;
-  }
-  .mini-num {
-    font-variant-numeric: tabular-nums;
-    z-index: 1;
-  }
-  .mini-num.sun { color: var(--sun); }
-  .mini-num.sat { color: var(--sat); }
-  .mini-dots {
-    display: flex; gap: 1px;
-    z-index: 1;
-  }
-  .mini-dot {
-    width: 4px; height: 4px;
-    border-radius: 50%;
-    background: var(--dot-color);
+    border-radius: 4px;
   }
 
-  /* Day list */
-  main {
-    padding: 8px 12px 40px;
-    max-width: 720px;
-    margin: 0 auto;
+  /* Bottom sheet */
+  .sheet-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.35);
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease-out;
   }
-  .day-sec {
-    margin-bottom: 10px;
-    scroll-margin-top: var(--scroll-margin, 280px);
+  .sheet-backdrop.show {
+    opacity: 1;
+    pointer-events: auto;
   }
-  .day-sec.empty {
-    margin-bottom: 2px;
+  .sheet {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    background: var(--card);
+    border-top: 4px solid var(--accent);
+    border-radius: 18px 18px 0 0;
+    padding: 12px 16px calc(20px + env(safe-area-inset-bottom));
+    z-index: 101;
+    transform: translateY(100%);
+    transition: transform 0.25s cubic-bezier(0.2, 0.7, 0.3, 1);
+    box-shadow: 0 -8px 28px rgba(0,0,0,0.18);
+    max-height: 88vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
-  .day-head {
-    display: flex; align-items: baseline; gap: 8px;
-    border-bottom: 1px solid var(--line);
-    padding: 4px 2px 3px;
-    margin-bottom: 4px;
-    position: relative;
+  .sheet.show { transform: translateY(0); }
+  @media (min-width: 600px) {
+    .sheet {
+      max-width: 600px;
+      left: 50%;
+      transform: translate(-50%, 100%);
+      border-radius: 18px;
+      bottom: 16px;
+    }
+    .sheet.show { transform: translate(-50%, 0); }
   }
-  .day-head .num {
-    font-size: 14px; font-weight: 700;
-    font-variant-numeric: tabular-nums;
+  .sheet-handle {
+    width: 40px; height: 4px;
+    border-radius: 2px;
+    background: #d6d3d1;
+    margin: 0 auto 10px;
   }
-  .day-head.sun .num { color: var(--sun); }
-  .day-head.sat .num { color: var(--sat); }
-  .day-head .wday {
-    font-size: 11px; color: var(--muted);
-  }
-  .day-head.today {
-    border-bottom-color: var(--accent);
-  }
-  .day-head.today::after {
-    content: "今日";
+  .sheet-close {
     position: absolute;
-    right: 4px;
-    font-size: 10px;
-    color: var(--accent);
-    font-weight: 600;
+    top: 8px; right: 10px;
+    background: none; border: none;
+    font-size: 18px;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: inherit;
+    padding: 6px 8px;
+    line-height: 1;
   }
-  .day-sec.empty .day-head {
-    border-bottom-color: transparent;
-    padding: 2px;
-    margin-bottom: 0;
+  .sheet-day-head {
+    margin-bottom: 12px;
   }
-  .day-sec.empty .day-head .num {
-    font-weight: 400;
+  .sheet-day-num {
+    font-size: 26px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+    display: flex; align-items: baseline; gap: 8px;
+  }
+  .sheet-day-num.sun { color: var(--sun); }
+  .sheet-day-num.sat { color: var(--sat); }
+  .sheet-day-num .wd {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--muted);
+  }
+  .sheet-day-summary {
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .sheet-empty {
+    padding: 16px 0;
+    text-align: center;
+    color: var(--muted);
     font-size: 13px;
-    color: var(--muted);
   }
-  .day-sec.empty .day-head .wday { color: #a8a29e; }
-  .day-empty-msg {
-    font-size: 11px;
-    color: var(--muted);
-    padding: 0 4px 2px;
-  }
-  .day-note {
-    font-size: 11px;
-    color: var(--muted);
-    background: #f5f5f4;
-    border-radius: 4px;
-    padding: 4px 8px;
-    margin-bottom: 4px;
-  }
-  .allday-list {
-    margin-bottom: 4px;
-  }
+
+  /* Allday */
+  .allday-list { margin-bottom: 8px; }
   .allday-block {
     background: var(--studio-bg);
     border-left: 3px solid var(--studio-color);
     border-radius: 4px;
-    padding: 4px 8px;
-    font-size: 12px;
-    margin-bottom: 3px;
+    padding: 6px 10px;
+    font-size: 13px;
+    margin-bottom: 4px;
   }
-  .allday-block .lbl { font-weight: 500; }
-  .allday-block .meta { font-size: 11px; color: var(--muted); }
+  .allday-block .lbl { font-weight: 600; }
+  .allday-block .meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
 
-  /* Outlook-style time grid (2-column: kawagoe/miyoshino/joint | tokorozawa) */
+  /* Time grid (two-column: left=kawagoe/joint/miyoshino, right=tokorozawa) */
   .time-sides-head {
     display: grid;
     grid-template-columns: 36px 1fr 1fr;
@@ -326,12 +337,7 @@
     overflow: hidden;
     padding: 12px 0;
   }
-  .time-grid.with-head { border-top: none; }
-  .time-content.side-L { border-right: 1px dashed var(--line); }
-  .time-axis {
-    position: relative;
-    border-right: 1px solid var(--line);
-  }
+  .time-axis { position: relative; border-right: 1px solid var(--line); }
   .time-mark {
     position: absolute;
     width: 100%;
@@ -342,17 +348,15 @@
     font-variant-numeric: tabular-nums;
     transform: translateY(-7px);
   }
-  .time-content {
-    position: relative;
-  }
+  .time-content { position: relative; }
+  .time-content.side-L { border-right: 1px dashed var(--line); }
   .grid-line {
     position: absolute;
     left: 0; right: 0;
     height: 0;
-    border-top: 1px dotted var(--line-soft);
+    border-top: 1px solid var(--line-soft);
     pointer-events: none;
   }
-  .grid-line.hour { border-top-style: solid; border-top-color: var(--line-soft); }
   .time-block {
     position: absolute;
     background: var(--studio-bg);
@@ -361,13 +365,9 @@
     padding: 2px 4px;
     font-size: 10px;
     overflow: visible;
-    cursor: pointer;
     line-height: 1.2;
     min-height: 14px;
-    transition: filter 0.1s;
   }
-  .time-block:active { filter: brightness(0.95); }
-  .time-block:hover, .time-block:focus { z-index: 6; }
   .time-block .blk-time {
     font-variant-numeric: tabular-nums;
     font-size: 9px;
@@ -381,10 +381,7 @@
     margin-top: 1px;
     white-space: nowrap;
   }
-  /* Short block: time + label on one line, allow horizontal overflow */
-  .time-block.tight {
-    padding: 1px 4px;
-  }
+  .time-block.tight { padding: 1px 4px; }
   .time-block.tight .blk-time,
   .time-block.tight .blk-label {
     display: inline-block;
@@ -403,121 +400,30 @@
     vertical-align: middle;
   }
 
-  /* Bottom sheet for event detail */
-  .sheet-backdrop {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.35);
-    z-index: 100;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease-out;
-  }
-  .sheet-backdrop.show {
-    opacity: 1;
-    pointer-events: auto;
-  }
-  .sheet {
-    position: fixed;
-    left: 0; right: 0; bottom: 0;
-    background: var(--card);
-    border-top: 4px solid var(--studio-color, var(--accent));
-    border-radius: 18px 18px 0 0;
-    padding: 12px 18px calc(20px + env(safe-area-inset-bottom));
-    z-index: 101;
-    transform: translateY(100%);
-    transition: transform 0.25s cubic-bezier(0.2, 0.7, 0.3, 1);
-    box-shadow: 0 -8px 28px rgba(0,0,0,0.18);
-    max-height: 80vh;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-  }
-  .sheet.show { transform: translateY(0); }
-  @media (min-width: 600px) {
-    .sheet {
-      max-width: 560px;
-      left: 50%;
-      transform: translate(-50%, 100%);
-      border-radius: 18px;
-      bottom: 20px;
-    }
-    .sheet.show { transform: translate(-50%, 0); }
-  }
-  .sheet-handle {
-    width: 40px; height: 4px;
-    border-radius: 2px;
-    background: #d6d3d1;
-    margin: 0 auto 12px;
-  }
-  .sheet-close {
-    position: absolute;
-    top: 10px; right: 12px;
-    background: none; border: none;
-    font-size: 18px;
-    color: var(--muted);
-    cursor: pointer;
-    font-family: inherit;
-    padding: 6px 8px;
-    line-height: 1;
-  }
-  .sheet-title {
-    font-size: 20px;
-    font-weight: 600;
-    margin: 0 32px 4px 0;
-    line-height: 1.3;
-  }
-  .sheet-subtitle {
-    font-size: 13px;
-    color: var(--muted);
-    margin-bottom: 14px;
-  }
-  .sheet-time {
-    font-size: 24px;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    color: var(--studio-color);
-    margin: 6px 0 14px;
-    display: flex; align-items: center; gap: 10px;
-  }
-  .sheet-sym {
-    display: inline-block;
-    width: 28px; height: 28px;
-    border-radius: 50%;
-    background: var(--studio-color); color: white;
-    text-align: center; line-height: 28px;
-    font-size: 14px; font-weight: 700;
-  }
-  .sheet dl {
-    margin: 0;
-    display: grid;
-    grid-template-columns: 80px 1fr;
-    gap: 8px 12px;
-    font-size: 14px;
-  }
-  .sheet dt {
-    color: var(--muted); font-size: 11px;
-    text-transform: uppercase; letter-spacing: 0.05em;
-    align-self: center;
-  }
-  .sheet dd { margin: 0; }
-  .sheet .studio-tag { color: var(--studio-color); font-weight: 600; }
-  .sheet .note-block {
+  /* Notes list inside sheet */
+  .notes-list {
+    margin-top: 14px;
+    padding: 10px 12px;
     background: #fafaf9;
     border: 1px solid var(--line);
     border-radius: 6px;
-    padding: 8px 10px;
-    margin-top: 14px;
-    font-size: 13px;
-    color: var(--fg);
-    line-height: 1.5;
   }
-  .sheet .note-block::before {
-    content: "メモ";
-    display: block;
+  .notes-list-title {
     font-size: 10px;
     color: var(--muted);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+  }
+  .note-item {
+    font-size: 12px;
+    line-height: 1.5;
     margin-bottom: 4px;
+    color: var(--fg);
+  }
+  .note-item strong {
+    color: var(--accent);
+    font-weight: 600;
   }
 
   /* Footer */
@@ -548,38 +454,16 @@
   .notes ul { margin: 0; padding-left: 18px; }
   .notes li { margin-bottom: 2px; font-size: 12px; color: var(--muted); }
 
-  /* Back-to-top */
-  .back-top {
-    position: fixed;
-    right: 12px; bottom: 12px;
-    width: 38px; height: 38px;
-    border-radius: 50%;
-    background: var(--fg); color: var(--bg);
-    border: none;
-    font-size: 16px;
-    cursor: pointer;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-    display: none;
-    z-index: 40;
-    font-family: inherit;
-  }
-  .back-top.show { display: block; }
-
   @media (min-width: 600px) {
     body { font-size: 16px; }
     :root { --hour-h: 40px; }
-    header.app-head, .filters, .mini-cal-wrap, footer {
-      max-width: 720px;
-      margin-left: auto; margin-right: auto;
-    }
-    .mini-cell { min-height: 30px; }
-    .time-block .blk-label { font-size: 11px; }
+    .cal-cell { min-height: 96px; }
+    .cal-cell .ev-line { font-size: 10px; }
   }
 </style>
 </head>
 <body>
 
-<div class="sticky-top">
 <header class="app-head">
   <h1>バレエスタジオ予定表</h1>
   <div class="month-meta" id="month-label">読み込み中…</div>
@@ -621,19 +505,10 @@
   </details>
 </section>
 
-<section class="mini-cal-wrap">
-  <details id="mini-cal-details" open>
-    <summary>
-      <span class="toggle-icon">▸</span>
-      <span>月カレンダー</span>
-      <span class="hint">タップで日付ジャンプ</span>
-    </summary>
-    <div class="mini-cal-grid" id="mini-cal"></div>
-  </details>
-</section>
-</div>
-
-<main id="day-list"></main>
+<main>
+  <div class="cal-head-row" id="cal-head-row"></div>
+  <div class="cal-grid" id="cal-grid"></div>
+</main>
 
 <footer>
   <div class="legend-title">スタジオ凡例</div>
@@ -642,8 +517,6 @@
   <div class="legend-title" style="margin-top:12px">補足</div>
   <div class="notes" id="notes"></div>
 </footer>
-
-<button class="back-top" id="back-top" aria-label="一番上へ">↑</button>
 
 <div class="sheet-backdrop" id="sheet-backdrop"></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-hidden="true">
@@ -661,6 +534,8 @@ const TIME_START_HOUR = 8;
 const TIME_END_HOUR = 22;
 const TIME_START_MIN = TIME_START_HOUR * 60;
 const TIME_END_MIN = TIME_END_HOUR * 60;
+const LEFT_STUDIOS = ['kawagoe', 'miyoshino', 'joint'];
+const RIGHT_STUDIOS = ['tokorozawa'];
 
 let DATA = null;
 let HOUR_HEIGHT = 36;
@@ -678,7 +553,7 @@ async function loadData() {
     init();
   } catch (e) {
     document.getElementById('month-label').textContent =
-      'events.json を読み込めません。 http サーバ経由で開いてください';
+      'events.json を読み込めません';
     console.error(e);
   }
 }
@@ -696,34 +571,9 @@ function init() {
   bindFilterActions();
   buildLegend();
   buildNotes();
-  bindBackToTop();
   bindSheet();
-  ensureMiniCalendarOpen();
-  trackStickyHeight();
+  renderCalendarHeads();
   render();
-  scrollToTodayOrFirst();
-}
-
-function ensureMiniCalendarOpen() {
-  const mc = document.getElementById('mini-cal-details');
-  if (mc && !mc.open) mc.open = true;
-}
-
-function trackStickyHeight() {
-  const stick = document.querySelector('.sticky-top');
-  if (!stick) return;
-  const update = () => {
-    const h = stick.getBoundingClientRect().height;
-    document.documentElement.style.setProperty('--scroll-margin', (h + 8) + 'px');
-  };
-  update();
-  if (typeof ResizeObserver !== 'undefined') {
-    new ResizeObserver(update).observe(stick);
-  }
-  stick.querySelectorAll('details').forEach(d => {
-    d.addEventListener('toggle', () => setTimeout(update, 0));
-  });
-  window.addEventListener('resize', update);
 }
 
 function collectPieces() {
@@ -835,6 +685,7 @@ function buildLegend() {
 
 function buildNotes() {
   const wrap = document.getElementById('notes');
+  wrap.innerHTML = '';
   if (!DATA.notes_global || DATA.notes_global.length === 0) return;
   const ul = document.createElement('ul');
   for (const n of DATA.notes_global) {
@@ -845,58 +696,14 @@ function buildNotes() {
   wrap.appendChild(ul);
 }
 
-function bindBackToTop() {
-  const btn = document.getElementById('back-top');
-  window.addEventListener('scroll', () => {
-    btn.classList.toggle('show', window.scrollY > 400);
-  }, { passive: true });
-  btn.addEventListener('click', () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  });
-}
-
-function getOccurrenceInMonth(date) {
-  return Math.ceil(date.getDate() / 7);
-}
-
-function parseWeekOccurrences(note) {
-  if (!note) return null;
-  const m = note.match(/第([\d・]+)週/);
-  if (!m) return null;
-  return m[1].split('・').map(Number);
-}
-
 function parseTimeMin(s) {
   if (!s) return null;
   const [h, m] = s.split(':').map(Number);
   return h * 60 + m;
 }
 
-function isExceptionDate(iso) {
-  return (DATA.exceptions || []).find(e => e.date === iso);
-}
-
-function collectItemsForDate(date) {
-  const iso = date.toISOString().slice(0,10);
-  const weekday = date.getDay();
-  const items = [];
-  const exception = isExceptionDate(iso);
-
-  if (!exception || !exception.skip_templates) {
-    const tpl = DATA.weekly_templates.find(t => t.weekday === weekday);
-    if (tpl) {
-      for (const it of tpl.items) {
-        const occ = parseWeekOccurrences(it.note);
-        if (occ && !occ.includes(getOccurrenceInMonth(date))) continue;
-        items.push({ ...it, date: iso, _source: 'template' });
-      }
-    }
-  }
-  for (const ev of DATA.events) {
-    if (ev.date === iso) items.push({ ...ev, _source: 'event' });
-  }
-  items.sort((a, b) => (a.start || '').localeCompare(b.start || ''));
-  return { items, exception };
+function eventsForDate(iso) {
+  return DATA.events.filter(ev => ev.date === iso);
 }
 
 function passesFilter(item) {
@@ -919,30 +726,35 @@ function buildMonthDates() {
   return { first, last, dates };
 }
 
-function dayAnchorId(date) {
-  return 'day-' + date.toISOString().slice(0,10);
+function isAllDay(it) {
+  const s = parseTimeMin(it.start);
+  const e = parseTimeMin(it.end);
+  return s === 0 && e >= 23 * 60;
 }
 
 function render() {
-  renderMiniCalendar();
-  renderDayList();
+  renderCalendar();
 }
 
-function renderMiniCalendar() {
-  const root = document.getElementById('mini-cal');
+function renderCalendarHeads() {
+  const root = document.getElementById('cal-head-row');
   root.innerHTML = '';
-  const { first, dates } = buildMonthDates();
-
   ['日','月','火','水','木','金','土'].forEach((w, i) => {
     const h = document.createElement('div');
-    h.className = 'mini-head' + (i === 0 ? ' sun' : i === 6 ? ' sat' : '');
+    h.className = 'cal-head' + (i === 0 ? ' sun' : i === 6 ? ' sat' : '');
     h.textContent = w;
     root.appendChild(h);
   });
+}
+
+function renderCalendar() {
+  const root = document.getElementById('cal-grid');
+  root.innerHTML = '';
+  const { first, dates } = buildMonthDates();
 
   for (let i = 0; i < first.getDay(); i++) {
     const empty = document.createElement('div');
-    empty.className = 'mini-cell empty';
+    empty.className = 'cal-cell empty';
     root.appendChild(empty);
   }
 
@@ -950,105 +762,118 @@ function renderMiniCalendar() {
     const cell = document.createElement('div');
     const iso = date.toISOString().slice(0,10);
     const wd = date.getDay();
-    const { items, exception } = collectItemsForDate(date);
-    const visible = items.filter(passesFilter);
+    const visible = eventsForDate(iso).filter(passesFilter);
+    const hasAllDayException = visible.some(it => it.type === 'choreography' && isAllDay(it));
 
-    cell.className = 'mini-cell';
+    cell.className = 'cal-cell';
     if (iso === TODAY_ISO) cell.classList.add('today');
-    if (exception) cell.classList.add('exception');
+    if (hasAllDayException) cell.classList.add('exception');
     if (visible.length > 0) cell.classList.add('has-events');
     else cell.classList.add('no-events');
 
-    const num = document.createElement('span');
-    num.className = 'mini-num' + (wd === 0 ? ' sun' : wd === 6 ? ' sat' : '');
+    const num = document.createElement('div');
+    num.className = 'day-num' + (wd === 0 ? ' sun' : wd === 6 ? ' sat' : '');
     num.textContent = date.getDate();
     cell.appendChild(num);
 
-    const studios = [...new Set(visible.map(it => it.studio))];
-    if (studios.length > 0) {
-      const dots = document.createElement('span');
-      dots.className = 'mini-dots';
-      for (const sk of studios.slice(0, 4)) {
-        const d = document.createElement('span');
-        d.className = 'mini-dot';
-        d.style.setProperty('--dot-color', DATA.studios[sk].color);
-        dots.appendChild(d);
+    if (visible.length > 0) {
+      const sorted = [...visible].sort((a,b) => (a.start||'').localeCompare(b.start||''));
+      const MAX_LINES = 2;
+      for (const it of sorted.slice(0, MAX_LINES)) {
+        const studio = DATA.studios[it.studio];
+        const line = document.createElement('div');
+        line.className = 'ev-line';
+        line.style.setProperty('--studio-color', studio.color);
+        line.style.setProperty('--studio-bg', studio.bg);
+        const timeStr = isAllDay(it) ? '終日' : it.start;
+        line.textContent = `${timeStr} ${it.label}`;
+        cell.appendChild(line);
       }
-      cell.appendChild(dots);
+      if (sorted.length > MAX_LINES) {
+        const more = document.createElement('div');
+        more.className = 'ev-more';
+        more.textContent = '+' + (sorted.length - MAX_LINES);
+        cell.appendChild(more);
+      }
     }
 
-    cell.addEventListener('click', () => {
-      const target = document.getElementById(dayAnchorId(date));
-      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
+    if (visible.length > 0) {
+      cell.addEventListener('click', () => openDaySheet(date));
+    }
     root.appendChild(cell);
   }
 }
 
-function renderDayList() {
-  const root = document.getElementById('day-list');
-  root.innerHTML = '';
-  const { dates } = buildMonthDates();
+/* ============ Bottom sheet (per-day) ============ */
 
-  for (const date of dates) {
-    const iso = date.toISOString().slice(0,10);
-    const wd = date.getDay();
-    const { items, exception } = collectItemsForDate(date);
-    const visible = items.filter(passesFilter);
+function openDaySheet(date) {
+  const iso = date.toISOString().slice(0,10);
+  const wd = date.getDay();
+  const visible = eventsForDate(iso)
+    .filter(passesFilter)
+    .sort((a,b) => (a.start||'').localeCompare(b.start||''));
 
-    const sec = document.createElement('section');
-    sec.className = 'day-sec' + (visible.length === 0 && !exception ? ' empty' : '');
-    sec.id = dayAnchorId(date);
+  const content = document.getElementById('sheet-content');
+  content.innerHTML = '';
 
-    const head = document.createElement('div');
-    head.className = 'day-head' + (wd === 0 ? ' sun' : wd === 6 ? ' sat' : '');
-    if (iso === TODAY_ISO) head.classList.add('today');
-    head.innerHTML = `<span class="num">${date.getMonth()+1}/${date.getDate()}</span><span class="wday">(${WEEKDAY_JP[wd]})</span>`;
-    sec.appendChild(head);
+  const head = document.createElement('div');
+  head.className = 'sheet-day-head';
+  const numCls = wd === 0 ? ' sun' : wd === 6 ? ' sat' : '';
+  head.innerHTML = `
+    <div class="sheet-day-num${numCls}">
+      <span>${date.getMonth()+1}月${date.getDate()}日</span>
+      <span class="wd">${WEEKDAY_JP[wd]}</span>
+    </div>
+    <div class="sheet-day-summary">${visible.length === 0 ? '予定なし' : `予定 ${visible.length} 件`}</div>
+  `;
+  content.appendChild(head);
 
-    if (exception) {
-      const n = document.createElement('div');
-      n.className = 'day-note';
-      n.textContent = '※ ' + exception.reason;
-      sec.appendChild(n);
-    }
-
-    if (visible.length === 0 && !exception) {
-      const m = document.createElement('div');
-      m.className = 'day-empty-msg';
-      m.textContent = '予定なし';
-      sec.appendChild(m);
-    }
-
-    if (visible.length > 0) {
-      const inRange = [];
-      const outOfRange = [];
-      for (const it of visible) {
-        const s = parseTimeMin(it.start);
-        const e = parseTimeMin(it.end);
-        if (s == null || e == null || e <= TIME_START_MIN || s >= TIME_END_MIN || (s === 0 && e >= 23 * 60)) {
-          outOfRange.push(it);
-        } else {
-          inRange.push(it);
-        }
-      }
-
-      if (outOfRange.length > 0) {
-        const ad = document.createElement('div');
-        ad.className = 'allday-list';
-        for (const it of outOfRange) {
-          ad.appendChild(buildAllDayBlock(it));
-        }
-        sec.appendChild(ad);
-      }
-
-      if (inRange.length > 0) {
-        sec.appendChild(buildTimeGrid(inRange));
-      }
-    }
-
-    root.appendChild(sec);
+  if (visible.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'sheet-empty';
+    empty.textContent = '予定なし';
+    content.appendChild(empty);
+    showSheet();
+    return;
   }
+
+  const inRange = [], outOfRange = [];
+  for (const it of visible) {
+    const s = parseTimeMin(it.start);
+    const e = parseTimeMin(it.end);
+    if (s == null || e == null || e <= TIME_START_MIN || s >= TIME_END_MIN || isAllDay(it)) {
+      outOfRange.push(it);
+    } else {
+      inRange.push(it);
+    }
+  }
+
+  if (outOfRange.length > 0) {
+    const wrap = document.createElement('div');
+    wrap.className = 'allday-list';
+    for (const it of outOfRange) wrap.appendChild(buildAllDayBlock(it));
+    content.appendChild(wrap);
+  }
+
+  if (inRange.length > 0) {
+    content.appendChild(buildTimeGrid(inRange));
+  }
+
+  const withNotes = visible.filter(it => it.note);
+  if (withNotes.length > 0) {
+    const wrap = document.createElement('div');
+    wrap.className = 'notes-list';
+    wrap.innerHTML = '<div class="notes-list-title">メモ</div>';
+    for (const it of withNotes) {
+      const n = document.createElement('div');
+      n.className = 'note-item';
+      n.innerHTML = `<strong>${escapeHtml(it.label)}</strong>: ${escapeHtml(it.note)}`;
+      wrap.appendChild(n);
+    }
+    content.appendChild(wrap);
+  }
+
+  showSheet();
 }
 
 function buildAllDayBlock(it) {
@@ -1059,22 +884,17 @@ function buildAllDayBlock(it) {
   div.style.setProperty('--studio-color', studio.color);
   div.style.setProperty('--studio-bg', studio.bg);
   div.innerHTML = `
-    <div><span class="lbl">${escapeHtml(it.label)}</span></div>
-    <div class="meta">${type.symbol} ${type.name} · ${escapeHtml(studio.name)}${it.note ? '  ·  ' + escapeHtml(it.note) : ''}</div>
+    <div class="lbl">${escapeHtml(it.label)}</div>
+    <div class="meta">${type.symbol} ${type.name} · ${escapeHtml(studio.name)}${it.target ? '  ·  ' + escapeHtml(it.target) : ''}</div>
   `;
-  div.addEventListener('click', (e) => showDetailPop(it, div, e));
   return div;
 }
-
-const LEFT_STUDIOS = ['kawagoe', 'miyoshino', 'joint'];
-const RIGHT_STUDIOS = ['tokorozawa'];
 
 function sideOf(studio) {
   return RIGHT_STUDIOS.includes(studio) ? 'R' : 'L';
 }
 
 function assignSubColumns(items) {
-  // items sorted by start time within one side
   const cols = [];
   for (const it of items) {
     const s = parseTimeMin(it.start);
@@ -1106,7 +926,6 @@ function buildTimeGrid(items) {
 
   const totalHours = TIME_END_HOUR - TIME_START_HOUR;
   const totalHeight = totalHours * HOUR_HEIGHT;
-
   const wrap = document.createDocumentFragment();
 
   const sideHead = document.createElement('div');
@@ -1119,7 +938,7 @@ function buildTimeGrid(items) {
   wrap.appendChild(sideHead);
 
   const grid = document.createElement('div');
-  grid.className = 'time-grid with-head';
+  grid.className = 'time-grid';
   grid.style.height = totalHeight + 'px';
 
   const axis = document.createElement('div');
@@ -1133,10 +952,8 @@ function buildTimeGrid(items) {
   }
   grid.appendChild(axis);
 
-  const contentL = buildSideContent(leftItems, totalHours, 'L');
-  const contentR = buildSideContent(rightItems, totalHours, 'R');
-  grid.appendChild(contentL);
-  grid.appendChild(contentR);
+  grid.appendChild(buildSideContent(leftItems, totalHours, 'L'));
+  grid.appendChild(buildSideContent(rightItems, totalHours, 'R'));
 
   wrap.appendChild(grid);
 
@@ -1150,7 +967,7 @@ function buildSideContent(items, totalHours, side) {
   content.className = 'time-content side-' + side;
   for (let h = 1; h < totalHours; h++) {
     const line = document.createElement('div');
-    line.className = 'grid-line hour';
+    line.className = 'grid-line';
     line.style.top = (h * HOUR_HEIGHT) + 'px';
     content.appendChild(line);
   }
@@ -1177,49 +994,14 @@ function buildSideContent(items, totalHours, side) {
       <div class="blk-time"><span class="blk-sym">${type.symbol}</span>${it.start}–${it.end}</div>
       <div class="blk-label">${escapeHtml(it.label)}</div>
     `;
-    block.addEventListener('click', (e) => showDetailPop(it, block, e));
     content.appendChild(block);
   }
   return content;
 }
 
-function showDetailPop(it, anchor, evt) {
-  evt.stopPropagation();
-  openSheet(it);
-}
-
-function openSheet(it) {
+function showSheet() {
   const sheet = document.getElementById('sheet');
   const backdrop = document.getElementById('sheet-backdrop');
-  const content = document.getElementById('sheet-content');
-
-  const studio = DATA.studios[it.studio];
-  const type = DATA.types[it.type];
-  sheet.style.setProperty('--studio-color', studio.color);
-  sheet.style.borderTopColor = studio.color;
-
-  let dateLabel = '';
-  if (it.date) {
-    const d = new Date(it.date + 'T00:00:00');
-    dateLabel = `${d.getMonth()+1}月${d.getDate()}日 (${WEEKDAY_JP[d.getDay()]})`;
-  }
-
-  const rows = [];
-  rows.push(`<dt>スタジオ</dt><dd><span class="studio-tag">${escapeHtml(studio.name)}</span></dd>`);
-  rows.push(`<dt>種別</dt><dd>${escapeHtml(type.name)}</dd>`);
-  if (it.target) rows.push(`<dt>対象</dt><dd>${escapeHtml(it.target)}</dd>`);
-  if (it.tags && it.tags.length > 0) {
-    rows.push(`<dt>演目</dt><dd>${it.tags.map(escapeHtml).join(' · ')}</dd>`);
-  }
-
-  content.innerHTML = `
-    <div class="sheet-subtitle">${escapeHtml(dateLabel)}</div>
-    <div class="sheet-title">${escapeHtml(it.label)}</div>
-    <div class="sheet-time"><span class="sheet-sym">${type.symbol}</span>${it.start}<span style="color:var(--muted); font-weight:400; font-size:18px">  〜  </span>${it.end}</div>
-    <dl>${rows.join('')}</dl>
-    ${it.note ? `<div class="note-block">${escapeHtml(it.note)}</div>` : ''}
-  `;
-
   sheet.classList.add('show');
   backdrop.classList.add('show');
   sheet.setAttribute('aria-hidden', 'false');
@@ -1244,29 +1026,6 @@ function bindSheet() {
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c =>
     ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
-}
-
-function scrollToTodayOrFirst() {
-  const { dates } = buildMonthDates();
-  let target = null;
-  for (const d of dates) {
-    if (d.toISOString().slice(0,10) === TODAY_ISO) {
-      target = document.getElementById(dayAnchorId(d));
-      break;
-    }
-  }
-  if (!target) {
-    for (const d of dates) {
-      const { items, exception } = collectItemsForDate(d);
-      if (exception || items.length > 0) {
-        target = document.getElementById(dayAnchorId(d));
-        break;
-      }
-    }
-  }
-  if (target) {
-    setTimeout(() => target.scrollIntoView({ behavior: 'auto', block: 'start' }), 50);
-  }
 }
 
 loadData();
