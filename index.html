@@ -29,11 +29,19 @@
     font-size: 15px; line-height: 1.5;
     -webkit-text-size-adjust: 100%;
   }
+  .sticky-top {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: var(--card);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    max-height: 70vh;
+    overflow-y: auto;
+  }
   header.app-head {
     padding: 10px 14px 6px;
     background: var(--card);
     border-bottom: 1px solid var(--line);
-    position: sticky; top: 0; z-index: 30;
   }
   h1 {
     margin: 0; font-size: 15px; font-weight: 600;
@@ -218,7 +226,7 @@
   }
   .day-sec {
     margin-bottom: 10px;
-    scroll-margin-top: 60px;
+    scroll-margin-top: var(--scroll-margin, 280px);
   }
   .day-sec.empty {
     margin-bottom: 2px;
@@ -288,15 +296,35 @@
   .allday-block .lbl { font-weight: 500; }
   .allday-block .meta { font-size: 11px; color: var(--muted); }
 
-  /* Outlook-style time grid */
-  .time-grid {
+  /* Outlook-style time grid (2-column: kawagoe/miyoshino/joint | tokorozawa) */
+  .time-sides-head {
     display: grid;
-    grid-template-columns: 36px 1fr;
+    grid-template-columns: 36px 1fr 1fr;
+    font-size: 10px;
+    color: var(--muted);
+    text-align: center;
     background: var(--card);
     border: 1px solid var(--line);
-    border-radius: 6px;
-    overflow: hidden;
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    padding: 5px 0 4px;
   }
+  .time-sides-head .side-label {
+    padding: 0 4px;
+    border-left: 1px solid var(--line-soft);
+  }
+  .time-sides-head .side-label:first-of-type { border-left: none; }
+  .time-grid {
+    display: grid;
+    grid-template-columns: 36px 1fr 1fr;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 0 0 6px 6px;
+    overflow: hidden;
+    padding: 12px 0;
+  }
+  .time-grid.with-head { border-top: none; }
+  .time-content.side-L { border-right: 1px dashed var(--line); }
   .time-axis {
     position: relative;
     border-right: 1px solid var(--line);
@@ -329,27 +357,38 @@
     border-radius: 3px;
     padding: 2px 4px;
     font-size: 10px;
-    overflow: hidden;
+    overflow: visible;
     cursor: pointer;
     line-height: 1.2;
-    min-height: 16px;
+    min-height: 14px;
     transition: filter 0.1s;
   }
   .time-block:active { filter: brightness(0.95); }
+  .time-block:hover, .time-block:focus { z-index: 6; }
   .time-block .blk-time {
     font-variant-numeric: tabular-nums;
     font-size: 9px;
     color: var(--muted);
     font-weight: 500;
+    white-space: nowrap;
   }
   .time-block .blk-label {
     font-weight: 500;
     font-size: 10px;
     margin-top: 1px;
-    overflow: hidden;
-    text-overflow: ellipsis;
     white-space: nowrap;
   }
+  /* Short block: time + label on one line, allow horizontal overflow */
+  .time-block.tight {
+    padding: 1px 4px;
+  }
+  .time-block.tight .blk-time,
+  .time-block.tight .blk-label {
+    display: inline-block;
+    vertical-align: middle;
+    margin-top: 0;
+  }
+  .time-block.tight .blk-label { margin-left: 4px; }
   .time-block .blk-sym {
     display: inline-block;
     width: 11px; height: 11px;
@@ -361,45 +400,121 @@
     vertical-align: middle;
   }
 
-  /* Event detail modal-like */
-  .ev-detail-pop {
-    background: var(--card);
-    border: 1px solid var(--studio-color);
-    border-radius: 6px;
-    padding: 10px 12px;
-    margin-top: 4px;
-    font-size: 13px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  /* Bottom sheet for event detail */
+  .sheet-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.35);
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease-out;
   }
-  .ev-detail-pop dl {
+  .sheet-backdrop.show {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .sheet {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    background: var(--card);
+    border-top: 4px solid var(--studio-color, var(--accent));
+    border-radius: 18px 18px 0 0;
+    padding: 12px 18px calc(20px + env(safe-area-inset-bottom));
+    z-index: 101;
+    transform: translateY(100%);
+    transition: transform 0.25s cubic-bezier(0.2, 0.7, 0.3, 1);
+    box-shadow: 0 -8px 28px rgba(0,0,0,0.18);
+    max-height: 80vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .sheet.show { transform: translateY(0); }
+  @media (min-width: 600px) {
+    .sheet {
+      max-width: 560px;
+      left: 50%;
+      transform: translate(-50%, 100%);
+      border-radius: 18px;
+      bottom: 20px;
+    }
+    .sheet.show { transform: translate(-50%, 0); }
+  }
+  .sheet-handle {
+    width: 40px; height: 4px;
+    border-radius: 2px;
+    background: #d6d3d1;
+    margin: 0 auto 12px;
+  }
+  .sheet-close {
+    position: absolute;
+    top: 10px; right: 12px;
+    background: none; border: none;
+    font-size: 18px;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: inherit;
+    padding: 6px 8px;
+    line-height: 1;
+  }
+  .sheet-title {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0 32px 4px 0;
+    line-height: 1.3;
+  }
+  .sheet-subtitle {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+  .sheet-time {
+    font-size: 24px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--studio-color);
+    margin: 6px 0 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .sheet-sym {
+    display: inline-block;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--studio-color); color: white;
+    text-align: center; line-height: 28px;
+    font-size: 14px; font-weight: 700;
+  }
+  .sheet dl {
     margin: 0;
     display: grid;
-    grid-template-columns: 64px 1fr;
-    gap: 3px 8px;
+    grid-template-columns: 80px 1fr;
+    gap: 8px 12px;
+    font-size: 14px;
   }
-  .ev-detail-pop dt {
-    color: var(--muted); font-size: 10px;
+  .sheet dt {
+    color: var(--muted); font-size: 11px;
     text-transform: uppercase; letter-spacing: 0.05em;
     align-self: center;
   }
-  .ev-detail-pop dd { margin: 0; font-size: 13px; }
-  .ev-detail-pop .studio-tag { color: var(--studio-color); font-weight: 500; }
-  .ev-detail-pop .note-block {
+  .sheet dd { margin: 0; }
+  .sheet .studio-tag { color: var(--studio-color); font-weight: 600; }
+  .sheet .note-block {
     background: #fafaf9;
-    border-radius: 4px;
-    padding: 5px 8px;
-    margin-top: 6px;
-    font-size: 11px;
-    color: var(--muted);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin-top: 14px;
+    font-size: 13px;
+    color: var(--fg);
+    line-height: 1.5;
   }
-  .ev-detail-pop .close {
-    float: right;
-    font-size: 12px;
+  .sheet .note-block::before {
+    content: "メモ";
+    display: block;
+    font-size: 10px;
     color: var(--muted);
-    cursor: pointer;
-    background: none; border: none;
-    font-family: inherit;
-    padding: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
   }
 
   /* Footer */
@@ -461,6 +576,7 @@
 </head>
 <body>
 
+<div class="sticky-top">
 <header class="app-head">
   <h1>バレエスタジオ予定表</h1>
   <div class="month-meta" id="month-label">読み込み中…</div>
@@ -503,7 +619,7 @@
 </section>
 
 <section class="mini-cal-wrap">
-  <details id="mini-cal-details">
+  <details id="mini-cal-details" open>
     <summary>
       <span class="toggle-icon">▸</span>
       <span>月カレンダー</span>
@@ -512,6 +628,7 @@
     <div class="mini-cal-grid" id="mini-cal"></div>
   </details>
 </section>
+</div>
 
 <main id="day-list"></main>
 
@@ -524,6 +641,13 @@
 </footer>
 
 <button class="back-top" id="back-top" aria-label="一番上へ">↑</button>
+
+<div class="sheet-backdrop" id="sheet-backdrop"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="sheet-handle"></div>
+  <button class="sheet-close" id="sheet-close" aria-label="閉じる">✕</button>
+  <div id="sheet-content"></div>
+</div>
 
 <script>
 'use strict';
@@ -570,8 +694,27 @@ function init() {
   buildLegend();
   buildNotes();
   bindBackToTop();
+  bindSheet();
+  trackStickyHeight();
   render();
   scrollToTodayOrFirst();
+}
+
+function trackStickyHeight() {
+  const stick = document.querySelector('.sticky-top');
+  if (!stick) return;
+  const update = () => {
+    const h = stick.getBoundingClientRect().height;
+    document.documentElement.style.setProperty('--scroll-margin', (h + 8) + 'px');
+  };
+  update();
+  if (typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(update).observe(stick);
+  }
+  stick.querySelectorAll('details').forEach(d => {
+    d.addEventListener('toggle', () => setTimeout(update, 0));
+  });
+  window.addEventListener('resize', update);
 }
 
 function collectPieces() {
@@ -914,38 +1057,60 @@ function buildAllDayBlock(it) {
   return div;
 }
 
-function assignColumns(items) {
-  // items sorted by start time, returns items with _col and shared _maxCols
-  const cols = []; // end time of last event in each column
-  const assigns = [];
+const LEFT_STUDIOS = ['kawagoe', 'miyoshino', 'joint'];
+const RIGHT_STUDIOS = ['tokorozawa'];
+
+function sideOf(studio) {
+  return RIGHT_STUDIOS.includes(studio) ? 'R' : 'L';
+}
+
+function assignSubColumns(items) {
+  // items sorted by start time within one side
+  const cols = [];
   for (const it of items) {
     const s = parseTimeMin(it.start);
     let placed = false;
     for (let i = 0; i < cols.length; i++) {
       if (cols[i] <= s) {
         cols[i] = parseTimeMin(it.end);
-        assigns.push(i);
+        it._sub = i;
         placed = true;
         break;
       }
     }
     if (!placed) {
-      assigns.push(cols.length);
+      it._sub = cols.length;
       cols.push(parseTimeMin(it.end));
     }
   }
-  const maxCols = cols.length;
-  return items.map((it, i) => ({ ...it, _col: assigns[i], _maxCols: maxCols }));
+  const max = Math.max(cols.length, 1);
+  for (const it of items) it._subMax = max;
+  return items;
 }
 
 function buildTimeGrid(items) {
   items.sort((a,b) => parseTimeMin(a.start) - parseTimeMin(b.start));
-  const laid = assignColumns(items);
+  const leftItems = items.filter(it => sideOf(it.studio) === 'L');
+  const rightItems = items.filter(it => sideOf(it.studio) === 'R');
+  assignSubColumns(leftItems);
+  assignSubColumns(rightItems);
 
-  const grid = document.createElement('div');
-  grid.className = 'time-grid';
   const totalHours = TIME_END_HOUR - TIME_START_HOUR;
   const totalHeight = totalHours * HOUR_HEIGHT;
+
+  const wrap = document.createDocumentFragment();
+
+  const sideHead = document.createElement('div');
+  sideHead.className = 'time-sides-head';
+  sideHead.innerHTML = `
+    <div></div>
+    <div class="side-label">川越 ・ 合同 ・ みよしの</div>
+    <div class="side-label">所沢</div>
+  `;
+  wrap.appendChild(sideHead);
+
+  const grid = document.createElement('div');
+  grid.className = 'time-grid with-head';
   grid.style.height = totalHeight + 'px';
 
   const axis = document.createElement('div');
@@ -959,34 +1124,46 @@ function buildTimeGrid(items) {
   }
   grid.appendChild(axis);
 
+  const contentL = buildSideContent(leftItems, totalHours, 'L');
+  const contentR = buildSideContent(rightItems, totalHours, 'R');
+  grid.appendChild(contentL);
+  grid.appendChild(contentR);
+
+  wrap.appendChild(grid);
+
+  const container = document.createElement('div');
+  container.appendChild(wrap);
+  return container;
+}
+
+function buildSideContent(items, totalHours, side) {
   const content = document.createElement('div');
-  content.className = 'time-content';
+  content.className = 'time-content side-' + side;
   for (let h = 1; h < totalHours; h++) {
     const line = document.createElement('div');
     line.className = 'grid-line hour';
     line.style.top = (h * HOUR_HEIGHT) + 'px';
     content.appendChild(line);
   }
-
-  for (const it of laid) {
+  for (const it of items) {
     const studio = DATA.studios[it.studio];
     const type = DATA.types[it.type];
     const startMin = Math.max(parseTimeMin(it.start), TIME_START_MIN);
     const endMin = Math.min(parseTimeMin(it.end), TIME_END_MIN);
     const top = ((startMin - TIME_START_MIN) / 60) * HOUR_HEIGHT;
     const height = Math.max(((endMin - startMin) / 60) * HOUR_HEIGHT - 1, 14);
-
-    const colWidth = 100 / it._maxCols;
-    const left = it._col * colWidth;
+    const subWidth = 100 / it._subMax;
+    const leftPct = it._sub * subWidth;
 
     const block = document.createElement('div');
-    block.className = 'time-block';
+    block.className = 'time-block' + (height < 28 ? ' tight' : '');
     block.style.setProperty('--studio-color', studio.color);
     block.style.setProperty('--studio-bg', studio.bg);
     block.style.top = top + 'px';
     block.style.height = height + 'px';
-    block.style.left = `calc(${left}% + 2px)`;
-    block.style.width = `calc(${colWidth}% - 4px)`;
+    block.style.left = `calc(${leftPct}% + 2px)`;
+    block.style.width = `calc(${subWidth}% - 4px)`;
+    block.style.zIndex = String(5 + it._sub);
     block.innerHTML = `
       <div class="blk-time"><span class="blk-sym">${type.symbol}</span>${it.start}–${it.end}</div>
       <div class="blk-label">${escapeHtml(it.label)}</div>
@@ -994,53 +1171,65 @@ function buildTimeGrid(items) {
     block.addEventListener('click', (e) => showDetailPop(it, block, e));
     content.appendChild(block);
   }
-
-  grid.appendChild(content);
-  return grid;
+  return content;
 }
 
-let currentPop = null;
 function showDetailPop(it, anchor, evt) {
   evt.stopPropagation();
-  if (currentPop) {
-    currentPop.remove();
-    currentPop = null;
-  }
+  openSheet(it);
+}
+
+function openSheet(it) {
+  const sheet = document.getElementById('sheet');
+  const backdrop = document.getElementById('sheet-backdrop');
+  const content = document.getElementById('sheet-content');
+
   const studio = DATA.studios[it.studio];
   const type = DATA.types[it.type];
-  const pop = document.createElement('div');
-  pop.className = 'ev-detail-pop';
-  pop.style.setProperty('--studio-color', studio.color);
-  pop.style.borderLeftWidth = '4px';
-  pop.style.borderLeftColor = studio.color;
+  sheet.style.setProperty('--studio-color', studio.color);
+  sheet.style.borderTopColor = studio.color;
+
+  let dateLabel = '';
+  if (it.date) {
+    const d = new Date(it.date + 'T00:00:00');
+    dateLabel = `${d.getMonth()+1}月${d.getDate()}日 (${WEEKDAY_JP[d.getDay()]})`;
+  }
 
   const rows = [];
   rows.push(`<dt>スタジオ</dt><dd><span class="studio-tag">${escapeHtml(studio.name)}</span></dd>`);
   rows.push(`<dt>種別</dt><dd>${escapeHtml(type.name)}</dd>`);
-  rows.push(`<dt>時間</dt><dd>${it.start} – ${it.end}</dd>`);
   if (it.target) rows.push(`<dt>対象</dt><dd>${escapeHtml(it.target)}</dd>`);
   if (it.tags && it.tags.length > 0) {
     rows.push(`<dt>演目</dt><dd>${it.tags.map(escapeHtml).join(' · ')}</dd>`);
   }
-  pop.innerHTML = `
-    <button class="close" aria-label="閉じる">✕</button>
-    <div style="font-weight:600; margin-bottom:6px">${escapeHtml(it.label)}</div>
+
+  content.innerHTML = `
+    <div class="sheet-subtitle">${escapeHtml(dateLabel)}</div>
+    <div class="sheet-title">${escapeHtml(it.label)}</div>
+    <div class="sheet-time"><span class="sheet-sym">${type.symbol}</span>${it.start}<span style="color:var(--muted); font-weight:400; font-size:18px">  〜  </span>${it.end}</div>
     <dl>${rows.join('')}</dl>
     ${it.note ? `<div class="note-block">${escapeHtml(it.note)}</div>` : ''}
   `;
-  pop.querySelector('.close').addEventListener('click', () => { pop.remove(); currentPop = null; });
-  const daySec = anchor.closest('.day-sec');
-  daySec.appendChild(pop);
-  currentPop = pop;
 
-  document.addEventListener('click', dismissOnOutside);
+  sheet.classList.add('show');
+  backdrop.classList.add('show');
+  sheet.setAttribute('aria-hidden', 'false');
 }
-function dismissOnOutside(e) {
-  if (currentPop && !currentPop.contains(e.target)) {
-    currentPop.remove();
-    currentPop = null;
-    document.removeEventListener('click', dismissOnOutside);
-  }
+
+function closeSheet() {
+  const sheet = document.getElementById('sheet');
+  const backdrop = document.getElementById('sheet-backdrop');
+  sheet.classList.remove('show');
+  backdrop.classList.remove('show');
+  sheet.setAttribute('aria-hidden', 'true');
+}
+
+function bindSheet() {
+  document.getElementById('sheet-close').addEventListener('click', closeSheet);
+  document.getElementById('sheet-backdrop').addEventListener('click', closeSheet);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeSheet();
+  });
 }
 
 function escapeHtml(s) {
