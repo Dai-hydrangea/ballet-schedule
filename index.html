@@ -558,36 +558,50 @@
   .import-toggle.visible { display: inline-block; }
   .import-toggle:active { background: var(--accent-soft); }
 
-  .import-tabs {
-    display: flex;
-    gap: 4px;
-    border-bottom: 1.5px solid var(--line);
-    margin-bottom: 12px;
+  .import-input-area {
+    margin: 10px 0;
   }
-  .import-tabs button {
-    flex: 1;
-    background: none;
-    border: none;
-    padding: 8px 4px;
+  .file-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--accent-soft);
+    border: 1.5px solid var(--accent);
+    border-radius: 12px;
+    padding: 10px 16px;
+    color: var(--accent-deep);
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .file-button:active { transform: scale(0.97); }
+  .file-button .file-name {
+    font-weight: 400;
     font-size: 12px;
     color: var(--muted);
-    font-family: inherit;
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -1.5px;
   }
-  .import-tabs button.active {
-    color: var(--accent-deep);
-    border-bottom-color: var(--accent);
-    font-weight: 600;
+  .import-or {
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+    margin: 12px 0 8px;
+    position: relative;
   }
-  .import-pane {
-    display: none;
+  .import-or::before, .import-or::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: 30%;
+    height: 1px;
+    background: var(--line);
   }
-  .import-pane.active { display: block; }
-  .import-pane textarea {
+  .import-or::before { left: 0; }
+  .import-or::after { right: 0; }
+  #import-text {
     width: 100%;
-    min-height: 200px;
+    min-height: 180px;
     border: 1.5px solid var(--line);
     border-radius: 10px;
     padding: 10px;
@@ -596,6 +610,10 @@
     color: var(--fg);
     resize: vertical;
     background: var(--bg-soft);
+  }
+  #import-text:focus {
+    outline: none;
+    border-color: var(--accent);
   }
   .import-pane textarea:focus {
     outline: none;
@@ -770,14 +788,14 @@
   <div id="sheet-content"></div>
 </div>
 
-<!-- Import modal -->
+<!-- Import modal (simplified for non-tech users) -->
 <div class="sheet-backdrop" id="import-backdrop"></div>
 <div class="sheet" id="import-sheet" role="dialog" aria-modal="true" aria-hidden="true">
   <div class="sheet-handle"></div>
   <button class="sheet-close" id="import-close" aria-label="閉じる">✕</button>
   <div class="sheet-day-head">
     <div class="sheet-day-num"><span>予定の取り込み</span></div>
-    <div class="sheet-day-summary">LINE / PDF / Claude が出した JSON を月のデータに反映</div>
+    <div class="sheet-day-summary">PDF を選ぶ、 または LINE 文面を貼り付けるだけ</div>
   </div>
 
   <div class="import-month-pick">
@@ -785,48 +803,26 @@
     <select id="import-month"></select>
   </div>
 
-  <div class="import-tabs">
-    <button data-tab="json" class="active">JSON</button>
-    <button data-tab="text">テキスト</button>
-    <button data-tab="pdf">PDF</button>
-  </div>
+  <div class="import-input-area">
+    <label class="file-button" for="import-pdf">
+      <span>PDF を選ぶ</span>
+      <span class="file-name" id="pdf-name">(未選択)</span>
+    </label>
+    <input type="file" id="import-pdf" accept="application/pdf" hidden>
 
-  <div class="import-pane active" data-pane="json">
-    <div class="import-hint">
-      Claude や ChatGPT に「これを events 配列の JSON にして」 と頼んだ結果を貼り付け。
-      <br>形式: <code>{ "events": [ ... ] }</code> または <code>[ ... ]</code> (配列のみ可)
-    </div>
-    <textarea id="import-json" placeholder='{"events": [{"date":"2026-06-07","start":"13:00","end":"15:30","studio":"kawagoe","type":"rehearsal","label":"海賊","tags":["海賊"]}]}'></textarea>
-  </div>
+    <div class="import-or">または、 文面を貼り付け</div>
 
-  <div class="import-pane" data-pane="text">
-    <div class="import-hint">
-      LINE 文面や PDF のテキストをコピペ。 「○日(曜) HH:MM〜HH:MM 演目」 形式を自動認識。
-      <br>例: <code>10日(日) 13:00~15:30 ディアナ、 トロワ</code>
-    </div>
-    <textarea id="import-text" placeholder="川越スタジオ リハーサル予定&#10;&#10;10日(日) 13:00~15:30 ディアナ、 トロワ&#10;17日(日) 13:30~15:30 海賊&#10;        15:30~17:30 海賊 Va"></textarea>
-  </div>
-
-  <div class="import-pane" data-pane="pdf">
-    <div class="import-hint">
-      PDF ファイル (= スタジオの正式予定 PDF など)。 ブラウザ内でテキスト抽出 → 自動認識。
-      <br>初回は PDF.js のロードに数秒。
-    </div>
-    <input type="file" id="import-pdf" accept="application/pdf" style="margin: 10px 0; font-family: inherit;">
-  </div>
-
-  <div class="import-actions">
-    <button id="import-parse">プレビュー生成</button>
-    <button id="import-merge" class="primary" disabled>この月にマージ</button>
-    <button id="import-replace" disabled>丸ごと置き換え</button>
+    <textarea id="import-text" placeholder="例:&#10;10日(日) 13:00~15:30 ディアナ&#10;17日(日) 13:30~15:30 海賊&#10;        15:30~17:30 海賊 Va"></textarea>
   </div>
 
   <div id="import-status"></div>
   <div id="import-preview" class="preview-list" hidden></div>
 
-  <div class="import-actions" style="margin-top: 8px;">
-    <button id="import-download" disabled>JSON ダウンロード</button>
-    <button id="import-upload" class="primary" disabled>サーバにアップロード</button>
+  <div class="import-actions">
+    <button id="import-action" class="primary" disabled>カレンダーに追加</button>
+  </div>
+  <div class="import-actions" style="margin-top: 6px;">
+    <button id="import-download" disabled style="font-size: 11px; padding: 6px 10px;">ファイルとして保存 (上級者用)</button>
   </div>
 </div>
 
@@ -1500,23 +1496,37 @@ function bindImportModal() {
   document.getElementById('import-close').addEventListener('click', closeImportSheet);
   document.getElementById('import-backdrop').addEventListener('click', closeImportSheet);
 
-  // Tabs
-  document.querySelectorAll('.import-tabs button').forEach(b => {
-    b.addEventListener('click', () => {
-      document.querySelectorAll('.import-tabs button').forEach(x => x.classList.toggle('active', x === b));
-      document.querySelectorAll('.import-pane').forEach(p => {
-        p.classList.toggle('active', p.dataset.pane === b.dataset.tab);
-      });
-      clearImportStatus();
-    });
+  // Inputs auto-parse
+  const pdfInput = document.getElementById('import-pdf');
+  pdfInput.addEventListener('change', () => {
+    const f = pdfInput.files[0];
+    document.getElementById('pdf-name').textContent = f ? f.name : '(未選択)';
+    if (f) autoParse();
   });
 
-  // Actions
-  document.getElementById('import-parse').addEventListener('click', handleParse);
-  document.getElementById('import-merge').addEventListener('click', () => commitPreview('merge'));
-  document.getElementById('import-replace').addEventListener('click', () => commitPreview('replace'));
+  const textInput = document.getElementById('import-text');
+  let textDebounce = null;
+  textInput.addEventListener('input', () => {
+    if (textDebounce) clearTimeout(textDebounce);
+    textDebounce = setTimeout(autoParse, 400);
+  });
+
+  // Month picker re-parse
+  document.getElementById('import-month').addEventListener('change', autoParse);
+
+  // Main action
+  document.getElementById('import-action').addEventListener('click', performAdd);
   document.getElementById('import-download').addEventListener('click', downloadCurrentPreview);
-  document.getElementById('import-upload').addEventListener('click', uploadCurrentPreview);
+}
+
+function performAdd() {
+  if (!CURRENT_PREVIEW) return;
+  if (API_BASE_URL && getUploadKey()) {
+    uploadCurrentPreview();
+  } else {
+    downloadCurrentPreview();
+    setImportStatus('オフラインモード: ファイルがダウンロードされます。 大作さんに送ってください', 'info');
+  }
 }
 
 function openImportSheet() {
@@ -1537,9 +1547,11 @@ function openImportSheet() {
 
   clearImportStatus();
   document.getElementById('import-preview').hidden = true;
-  ['import-merge','import-replace','import-download','import-upload'].forEach(id => {
-    document.getElementById(id).disabled = true;
-  });
+  document.getElementById('import-action').disabled = true;
+  document.getElementById('import-download').disabled = true;
+  document.getElementById('import-text').value = '';
+  document.getElementById('import-pdf').value = '';
+  document.getElementById('pdf-name').textContent = '(未選択)';
   CURRENT_PREVIEW = null;
 
   const sheet = document.getElementById('import-sheet');
@@ -1571,48 +1583,75 @@ function clearImportStatus() {
   document.getElementById('import-status').innerHTML = '';
 }
 
-/* ───── Parsers ───── */
+/* ───── Auto-parse (no explicit button) ───── */
 
-async function handleParse() {
-  clearImportStatus();
-  const activePane = document.querySelector('.import-pane.active').dataset.pane;
+async function autoParse() {
   const month = document.getElementById('import-month').value;
+  const file = document.getElementById('import-pdf').files[0];
+  const text = document.getElementById('import-text').value.trim();
+
+  if (!file && !text) {
+    CURRENT_PREVIEW = null;
+    document.getElementById('import-preview').hidden = true;
+    document.getElementById('import-action').disabled = true;
+    document.getElementById('import-download').disabled = true;
+    clearImportStatus();
+    return;
+  }
+
   let events = [];
   try {
-    if (activePane === 'json') {
-      events = parseJsonInput(document.getElementById('import-json').value);
-    } else if (activePane === 'text') {
-      events = parseTextInput(document.getElementById('import-text').value, month);
-    } else if (activePane === 'pdf') {
-      const file = document.getElementById('import-pdf').files[0];
-      if (!file) throw new Error('PDF ファイルを選択してください');
-      const text = await extractPdfText(file);
-      events = parseTextInput(text, month);
+    if (file) {
+      const pdfText = await extractPdfText(file);
+      events = parseAny(pdfText, month);
+    } else {
+      events = parseAny(text, month);
     }
   } catch (e) {
-    setImportStatus('パース失敗: ' + e.message, 'error');
+    setImportStatus('読み取り失敗: ' + e.message, 'error');
     return;
   }
 
   if (events.length === 0) {
-    setImportStatus('events が 0 件でした。 入力を確認してください', 'error');
+    setImportStatus('予定が見つかりませんでした。 形式を確認してください (例: 「10日(日) 13:00~15:30 演目名」)', 'error');
+    document.getElementById('import-preview').hidden = true;
+    document.getElementById('import-action').disabled = true;
+    document.getElementById('import-download').disabled = true;
     return;
   }
 
-  // Filter events to the chosen month (sanity)
   const monthEvents = events.filter(ev => ev.date && ev.date.startsWith(month));
   const skipped = events.length - monthEvents.length;
 
-  CURRENT_PREVIEW = { month, events: monthEvents };
+  CURRENT_PREVIEW = { month, events: monthEvents, mode: 'merge' };
   renderPreview(monthEvents);
-  ['import-merge','import-replace','import-download'].forEach(id => {
-    document.getElementById(id).disabled = false;
-  });
-  if (getUploadKey() && API_BASE_URL) {
-    document.getElementById('import-upload').disabled = false;
+
+  document.getElementById('import-action').disabled = false;
+  document.getElementById('import-download').disabled = false;
+
+  // Update action label depending on capability
+  const actionBtn = document.getElementById('import-action');
+  if (API_BASE_URL && getUploadKey()) {
+    actionBtn.textContent = `カレンダーに追加 (${monthEvents.length} 件)`;
+  } else {
+    actionBtn.textContent = `ダウンロード (${monthEvents.length} 件) → 大作さんに送る`;
   }
-  const msg = `${monthEvents.length} 件パース成功` + (skipped > 0 ? ` (${skipped} 件は対象月外でスキップ)` : '');
+
+  const msg = `${monthEvents.length} 件 認識` + (skipped > 0 ? ` (${skipped} 件は対象月外でスキップ)` : '');
   setImportStatus(msg, 'success');
+}
+
+function parseAny(text, month) {
+  const trimmed = (text || '').trim();
+  // Auto-detect JSON (大作さんが Claude 経由で貼り付ける高度な使い方も対応)
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    try {
+      return parseJsonInput(trimmed);
+    } catch (e) {
+      // Fall through to text parser
+    }
+  }
+  return parseTextInput(text, month);
 }
 
 function parseJsonInput(raw) {
