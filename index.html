@@ -32,12 +32,42 @@
   }
 
   header.app-head {
-    padding: 10px 14px 6px;
+    padding: 8px 12px 6px;
     background: var(--card);
     border-bottom: 1px solid var(--line);
   }
-  h1 { margin: 0; font-size: 15px; font-weight: 600; }
-  .month-meta { margin-top: 1px; font-size: 11px; color: var(--muted); }
+  .app-title { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .month-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+  }
+  .month-nav button {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 16px;
+    color: var(--fg);
+    cursor: pointer;
+    font-family: inherit;
+    min-width: 44px;
+    line-height: 1;
+  }
+  .month-nav button:active { background: var(--line-soft); }
+  .month-nav button:disabled { color: var(--line); cursor: default; }
+  .month-current {
+    flex: 1;
+    text-align: center;
+  }
+  h1.month-label {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .month-meta { margin-top: 1px; font-size: 10px; color: var(--muted); }
 
   /* Filters */
   .filters {
@@ -465,8 +495,15 @@
 <body>
 
 <header class="app-head">
-  <h1>バレエスタジオ予定表</h1>
-  <div class="month-meta" id="month-label">読み込み中…</div>
+  <div class="app-title">バレエスタジオ予定表</div>
+  <div class="month-nav">
+    <button id="prev-month" aria-label="前の月">◀</button>
+    <div class="month-current">
+      <h1 class="month-label" id="month-label">読み込み中…</h1>
+      <div class="month-meta" id="month-meta"></div>
+    </div>
+    <button id="next-month" aria-label="次の月">▶</button>
+  </div>
 </header>
 
 <section class="filters">
@@ -537,55 +574,154 @@ const TIME_END_MIN = TIME_END_HOUR * 60;
 const LEFT_STUDIOS = ['kawagoe', 'miyoshino', 'joint'];
 const RIGHT_STUDIOS = ['tokorozawa'];
 
-let DATA = null;
+let META = null;
+let MONTH_DATA = null;
+let CURRENT_MONTH = null; // "YYYY-MM"
 let HOUR_HEIGHT = 36;
+
+const MONTH_RANGE_MIN = '2026-04';
+const MONTH_RANGE_MAX = '2030-12';
+
 const filterState = {
   studios: new Set(),
   types: new Set(),
   pieces: new Set(),
 };
 
-async function loadData() {
+async function bootstrap() {
   try {
-    const res = await fetch('./events.json', { cache: 'no-store' });
-    DATA = await res.json();
+    const metaRes = await fetch('./meta.json', { cache: 'no-store' });
+    META = await metaRes.json();
     HOUR_HEIGHT = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--hour-h')) || 36;
-    init();
+
+    Object.keys(META.studios).forEach(k => filterState.studios.add(k));
+    Object.keys(META.types).forEach(k => filterState.types.add(k));
+
+    buildLegend();
+    buildNotes();
+    bindSheet();
+    bindMonthNav();
+    bindSwipe();
+    renderCalendarHeads();
+
+    const initialMonth = pickInitialMonth();
+    await loadMonth(initialMonth);
   } catch (e) {
-    document.getElementById('month-label').textContent =
-      'events.json を読み込めません';
+    document.getElementById('month-label').textContent = '読み込みエラー';
     console.error(e);
   }
 }
 
-function init() {
-  document.getElementById('month-label').textContent =
-    DATA.month_label + '  ·  更新 ' + DATA.generated_at;
+function pickInitialMonth() {
+  const today = new Date();
+  const ym = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2, '0');
+  if (ym < MONTH_RANGE_MIN) return MONTH_RANGE_MIN;
+  if (ym > MONTH_RANGE_MAX) return MONTH_RANGE_MAX;
+  return ym;
+}
 
-  Object.keys(DATA.studios).forEach(k => filterState.studios.add(k));
-  Object.keys(DATA.types).forEach(k => filterState.types.add(k));
+async function loadMonth(yyyy_mm) {
+  CURRENT_MONTH = yyyy_mm;
+  document.getElementById('month-label').textContent = formatMonthLabel(yyyy_mm);
+  document.getElementById('month-meta').textContent = '読み込み中…';
+  updateNavButtons();
+
+  try {
+    const res = await fetch(`./data/${yyyy_mm}.json`, { cache: 'no-store' });
+    if (res.ok) {
+      MONTH_DATA = await res.json();
+    } else {
+      MONTH_DATA = makeEmptyMonth(yyyy_mm);
+    }
+  } catch (e) {
+    MONTH_DATA = makeEmptyMonth(yyyy_mm);
+  }
+
+  document.getElementById('month-meta').textContent =
+    MONTH_DATA.events.length > 0
+      ? `予定 ${MONTH_DATA.events.length} 件  ·  ${MONTH_DATA.source || '出典未記載'}`
+      : 'この月の予定はまだ登録されていません';
+
   const allPieces = collectPieces();
-  allPieces.forEach(p => filterState.pieces.add(p));
-
+  filterState.pieces = new Set(allPieces);
   buildFilters(allPieces);
   bindFilterActions();
-  buildLegend();
-  buildNotes();
-  bindSheet();
-  renderCalendarHeads();
   render();
+}
+
+function makeEmptyMonth(yyyy_mm) {
+  return {
+    month: yyyy_mm,
+    month_label: formatMonthLabel(yyyy_mm),
+    generated_at: '',
+    source: '',
+    events: []
+  };
+}
+
+function formatMonthLabel(yyyy_mm) {
+  const [y, m] = yyyy_mm.split('-').map(Number);
+  return `${y}年${m}月`;
+}
+
+function navigateMonth(delta) {
+  const [y, m] = CURRENT_MONTH.split('-').map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  const target = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, '0')}`;
+  if (target < MONTH_RANGE_MIN || target > MONTH_RANGE_MAX) return;
+  loadMonth(target);
+}
+
+function updateNavButtons() {
+  const [y, m] = CURRENT_MONTH.split('-').map(Number);
+  const prevD = new Date(y, m - 2, 1);
+  const nextD = new Date(y, m, 1);
+  const prev = `${prevD.getFullYear()}-${String(prevD.getMonth()+1).padStart(2, '0')}`;
+  const next = `${nextD.getFullYear()}-${String(nextD.getMonth()+1).padStart(2, '0')}`;
+  document.getElementById('prev-month').disabled = prev < MONTH_RANGE_MIN;
+  document.getElementById('next-month').disabled = next > MONTH_RANGE_MAX;
+}
+
+function bindMonthNav() {
+  document.getElementById('prev-month').addEventListener('click', () => navigateMonth(-1));
+  document.getElementById('next-month').addEventListener('click', () => navigateMonth(+1));
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.key === 'ArrowLeft') navigateMonth(-1);
+    else if (e.key === 'ArrowRight') navigateMonth(+1);
+  });
+}
+
+function bindSwipe() {
+  const main = document.querySelector('main');
+  let sx = 0, sy = 0, tracking = false;
+  main.addEventListener('touchstart', (e) => {
+    sx = e.touches[0].clientX;
+    sy = e.touches[0].clientY;
+    tracking = true;
+  }, { passive: true });
+  main.addEventListener('touchend', (e) => {
+    if (!tracking) return;
+    tracking = false;
+    const dx = e.changedTouches[0].clientX - sx;
+    const dy = e.changedTouches[0].clientY - sy;
+    if (Math.abs(dx) > 60 && Math.abs(dy) < 40) {
+      if (dx > 0) navigateMonth(-1);
+      else navigateMonth(+1);
+    }
+  }, { passive: true });
 }
 
 function collectPieces() {
   const set = new Set();
-  for (const ev of DATA.events) (ev.tags || []).forEach(t => set.add(t));
+  for (const ev of MONTH_DATA.events) (ev.tags || []).forEach(t => set.add(t));
   return [...set].sort((a,b) => a.localeCompare(b, 'ja'));
 }
 
 function buildFilters(pieces) {
   const studioWrap = document.getElementById('studio-filters');
   studioWrap.innerHTML = '';
-  for (const [key, s] of Object.entries(DATA.studios)) {
+  for (const [key, s] of Object.entries(META.studios)) {
     const btn = document.createElement('button');
     btn.className = 'chip active';
     btn.dataset.color = '';
@@ -597,7 +733,7 @@ function buildFilters(pieces) {
 
   const typeWrap = document.getElementById('type-filters');
   typeWrap.innerHTML = '';
-  for (const [key, t] of Object.entries(DATA.types)) {
+  for (const [key, t] of Object.entries(META.types)) {
     const btn = document.createElement('button');
     btn.className = 'chip active';
     btn.textContent = t.symbol + '  ' + t.name;
@@ -632,7 +768,7 @@ function bindFilterActions() {
       const chips = wrap.querySelectorAll('.chip');
 
       if (group === 'studios' || group === 'types') {
-        const keys = Object.keys(group === 'studios' ? DATA.studios : DATA.types);
+        const keys = Object.keys(group === 'studios' ? META.studios : META.types);
         if (action === 'all') {
           filterState[group] = new Set(keys);
           chips.forEach(c => c.classList.add('active'));
@@ -669,7 +805,7 @@ function toggleFilter(group, key, btn) {
 function buildLegend() {
   const wrap = document.getElementById('legend');
   wrap.innerHTML = '';
-  for (const s of Object.values(DATA.studios)) {
+  for (const s of Object.values(META.studios)) {
     const item = document.createElement('div');
     item.className = 'legend-item';
     item.style.setProperty('--studio-color', s.color);
@@ -678,7 +814,7 @@ function buildLegend() {
     wrap.appendChild(item);
   }
   const types = document.getElementById('legend-types');
-  types.textContent = Object.values(DATA.types)
+  types.textContent = Object.values(META.types)
     .map(t => t.symbol + ' = ' + t.name)
     .join('   ·   ');
 }
@@ -686,9 +822,9 @@ function buildLegend() {
 function buildNotes() {
   const wrap = document.getElementById('notes');
   wrap.innerHTML = '';
-  if (!DATA.notes_global || DATA.notes_global.length === 0) return;
+  if (!META.notes_global || META.notes_global.length === 0) return;
   const ul = document.createElement('ul');
-  for (const n of DATA.notes_global) {
+  for (const n of META.notes_global) {
     const li = document.createElement('li');
     li.textContent = n;
     ul.appendChild(li);
@@ -703,7 +839,7 @@ function parseTimeMin(s) {
 }
 
 function eventsForDate(iso) {
-  return DATA.events.filter(ev => ev.date === iso);
+  return MONTH_DATA.events.filter(ev => ev.date === iso);
 }
 
 function passesFilter(item) {
@@ -716,7 +852,7 @@ function passesFilter(item) {
 }
 
 function buildMonthDates() {
-  const [y, m] = DATA.month.split('-').map(Number);
+  const [y, m] = MONTH_DATA.month.split('-').map(Number);
   const first = new Date(y, m - 1, 1);
   const last = new Date(y, m, 0);
   const dates = [];
@@ -780,7 +916,7 @@ function renderCalendar() {
       const sorted = [...visible].sort((a,b) => (a.start||'').localeCompare(b.start||''));
       const MAX_LINES = 2;
       for (const it of sorted.slice(0, MAX_LINES)) {
-        const studio = DATA.studios[it.studio];
+        const studio = META.studios[it.studio];
         const line = document.createElement('div');
         line.className = 'ev-line';
         line.style.setProperty('--studio-color', studio.color);
@@ -877,8 +1013,8 @@ function openDaySheet(date) {
 }
 
 function buildAllDayBlock(it) {
-  const studio = DATA.studios[it.studio];
-  const type = DATA.types[it.type];
+  const studio = META.studios[it.studio];
+  const type = META.types[it.type];
   const div = document.createElement('div');
   div.className = 'allday-block';
   div.style.setProperty('--studio-color', studio.color);
@@ -972,8 +1108,8 @@ function buildSideContent(items, totalHours, side) {
     content.appendChild(line);
   }
   for (const it of items) {
-    const studio = DATA.studios[it.studio];
-    const type = DATA.types[it.type];
+    const studio = META.studios[it.studio];
+    const type = META.types[it.type];
     const startMin = Math.max(parseTimeMin(it.start), TIME_START_MIN);
     const endMin = Math.min(parseTimeMin(it.end), TIME_END_MIN);
     const top = ((startMin - TIME_START_MIN) / 60) * HOUR_HEIGHT;
@@ -1028,7 +1164,7 @@ function escapeHtml(s) {
     ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 }
 
-loadData();
+bootstrap();
 </script>
 </body>
 </html>

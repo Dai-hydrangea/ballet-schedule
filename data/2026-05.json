@@ -1,0 +1,70 @@
+{
+  "month": "2026-05",
+  "month_label": "2026年5月",
+  "generated_at": "2026-05-18",
+  "source": "PDF: 川越スタジオ リハーサル予定",
+  "events": [
+    {
+      "date": "2026-05-10",
+      "start": "13:00",
+      "end": "15:30",
+      "studio": "kawagoe",
+      "type": "rehearsal",
+      "label": "ディアナ・トロワ・ガムザ・グルナーラ",
+      "tags": ["ディアナ", "トロワ", "ガムザ", "グルナーラ"],
+      "target": "各演目出演者"
+    },
+    {
+      "date": "2026-05-17",
+      "start": "13:30",
+      "end": "15:30",
+      "studio": "joint",
+      "type": "rehearsal",
+      "label": "海賊",
+      "tags": ["海賊"],
+      "target": "海賊出演者",
+      "note": "海賊は全て合同"
+    },
+    {
+      "date": "2026-05-17",
+      "start": "15:30",
+      "end": "17:30",
+      "studio": "joint",
+      "type": "rehearsal",
+      "label": "海賊 Va",
+      "tags": ["海賊", "ヴァリエーション"],
+      "target": "海賊Va出演者",
+      "note": "海賊は全て合同"
+    },
+    {
+      "date": "2026-05-24",
+      "start": "13:00",
+      "end": "14:00",
+      "studio": "kawagoe",
+      "type": "rehearsal",
+      "label": "道化",
+      "tags": ["道化"],
+      "target": "道化出演者"
+    },
+    {
+      "date": "2026-05-24",
+      "start": "14:00",
+      "end": "15:30",
+      "studio": "kawagoe",
+      "type": "rehearsal",
+      "label": "貴婦人",
+      "tags": ["貴婦人"],
+      "target": "貴婦人出演者"
+    },
+    {
+      "date": "2026-05-31",
+      "start": "15:30",
+      "end": "17:00",
+      "studio": "kawagoe",
+      "type": "rehearsal",
+      "label": "宝石",
+      "tags": ["宝石"],
+      "target": "宝石出演者"
+    }
+  ]
+}

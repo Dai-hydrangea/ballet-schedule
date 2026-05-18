@@ -1,0 +1,44 @@
+{
+  "version": 3,
+  "schema": "ballet-schedule-meta-v3",
+  "studios": {
+    "kawagoe": {
+      "name": "川越",
+      "color": "#3b82f6",
+      "bg": "#dbeafe"
+    },
+    "tokorozawa": {
+      "name": "所沢 (小手指)",
+      "color": "#f97316",
+      "bg": "#ffedd5"
+    },
+    "miyoshino": {
+      "name": "みよしの幼稚園",
+      "color": "#10b981",
+      "bg": "#d1fae5"
+    },
+    "joint": {
+      "name": "合同 (川越+所沢)",
+      "color": "#a855f7",
+      "bg": "#ede9fe"
+    }
+  },
+  "types": {
+    "lesson": {
+      "name": "追加レッスン",
+      "symbol": "L"
+    },
+    "rehearsal": {
+      "name": "リハーサル",
+      "symbol": "R"
+    },
+    "choreography": {
+      "name": "振付",
+      "symbol": "C"
+    }
+  },
+  "notes_global": [
+    "通常レッスンは https://inoue-kayoko.jp/schedule/ を参照 (このアプリには載せない)",
+    "海賊の日はすべて合同 (川越+所沢)"
+  ]
+}

@@ -1,0 +1,198 @@
+{
+  "month": "2026-04",
+  "month_label": "2026年4月",
+  "generated_at": "2026-05-18",
+  "source": "LINE (Image 3): 川越スタジオ レッスンとリハーサルの予定",
+  "events": [
+    {
+      "date": "2026-04-18",
+      "start": "10:00",
+      "end": "12:00",
+      "studio": "kawagoe",
+      "type": "lesson",
+      "label": "プレ・C・貴婦人",
+      "tags": ["貴婦人"],
+      "target": "該当者"
+    },
+    {
+      "date": "2026-04-18",
+      "start": "13:00",
+      "end": "15:00",
+      "studio": "kawagoe",
+      "type": "lesson",
+      "label": "ABクラス",
+      "tags": [],
+      "target": "AB"
+    },
+    {
+      "date": "2026-04-18",
+      "start": "15:00",
+      "end": "17:30",
+      "studio": "kawagoe",
+      "type": "rehearsal",
+      "label": "リハ",
+      "tags": [],
+      "target": "該当者"
+    },
+    {
+      "date": "2026-04-19",
+      "start": "10:00",
+      "end": "11:45",
+      "studio": "joint",
+      "type": "rehearsal",
+      "label": "オーロラ",
+      "tags": ["オーロラ"],
+      "target": "オーロラ出演者",
+      "note": "川越・小手指合同"
+    },
+    {
+      "date": "2026-04-19",
+      "start": "11:45",
+      "end": "13:30",
+      "studio": "joint",
+      "type": "lesson",
+      "label": "ピラティス",
+      "tags": [],
+      "target": "希望者",
+      "note": "川越・小手指合同"
+    },
+    {
+      "date": "2026-04-19",
+      "start": "13:30",
+      "end": "14:30",
+      "studio": "joint",
+      "type": "rehearsal",
+      "label": "貴婦人",
+      "tags": ["貴婦人"],
+      "target": "貴婦人出演者",
+      "note": "川越・小手指合同"
+    },
+    {
+      "date": "2026-04-19",
+      "start": "14:30",
+      "end": "15:30",
+      "studio": "joint",
+      "type": "rehearsal",
+      "label": "道化",
+      "tags": ["道化"],
+      "target": "道化出演者",
+      "note": "川越・小手指合同"
+    },
+    {
+      "date": "2026-04-19",
+      "start": "15:30",
+      "end": "17:30",
+      "studio": "joint",
+      "type": "rehearsal",
+      "label": "海賊",
+      "tags": ["海賊"],
+      "target": "海賊出演者",
+      "note": "川越・小手指合同 (海賊は全て合同)"
+    },
+    {
+      "date": "2026-04-25",
+      "start": "10:00",
+      "end": "12:00",
+      "studio": "kawagoe",
+      "type": "lesson",
+      "label": "プレC・貴婦人",
+      "tags": ["貴婦人"],
+      "target": "該当者"
+    },
+    {
+      "date": "2026-04-25",
+      "start": "13:30",
+      "end": "15:30",
+      "studio": "kawagoe",
+      "type": "lesson",
+      "label": "ABクラス",
+      "tags": [],
+      "target": "AB"
+    },
+    {
+      "date": "2026-04-25",
+      "start": "15:30",
+      "end": "17:00",
+      "studio": "kawagoe",
+      "type": "rehearsal",
+      "label": "リハ",
+      "tags": [],
+      "target": "該当者"
+    },
+    {
+      "date": "2026-04-26",
+      "start": "10:00",
+      "end": "11:30",
+      "studio": "kawagoe",
+      "type": "rehearsal",
+      "label": "オーロラ",
+      "tags": ["オーロラ"],
+      "target": "オーロラ出演者"
+    },
+    {
+      "date": "2026-04-26",
+      "start": "11:30",
+      "end": "13:00",
+      "studio": "kawagoe",
+      "type": "lesson",
+      "label": "vaクラス",
+      "tags": ["ヴァリエーション"],
+      "target": "希望者"
+    },
+    {
+      "date": "2026-04-26",
+      "start": "13:00",
+      "end": "16:00",
+      "studio": "joint",
+      "type": "rehearsal",
+      "label": "海賊",
+      "tags": ["海賊"],
+      "target": "海賊出演者",
+      "note": "海賊は全て合同"
+    },
+    {
+      "date": "2026-04-29",
+      "start": "10:00",
+      "end": "11:30",
+      "studio": "joint",
+      "type": "rehearsal",
+      "label": "貴婦人・道化",
+      "tags": ["貴婦人", "道化"],
+      "target": "出演者",
+      "note": "川越・小手指合同 (祝日)"
+    },
+    {
+      "date": "2026-04-29",
+      "start": "11:30",
+      "end": "12:30",
+      "studio": "joint",
+      "type": "rehearsal",
+      "label": "宝石",
+      "tags": ["宝石"],
+      "target": "宝石出演者",
+      "note": "川越・小手指合同"
+    },
+    {
+      "date": "2026-04-29",
+      "start": "12:30",
+      "end": "14:00",
+      "studio": "joint",
+      "type": "rehearsal",
+      "label": "一部 va",
+      "tags": ["ヴァリエーション"],
+      "target": "該当者",
+      "note": "川越・小手指合同"
+    },
+    {
+      "date": "2026-04-29",
+      "start": "14:00",
+      "end": "16:00",
+      "studio": "joint",
+      "type": "rehearsal",
+      "label": "海賊",
+      "tags": ["海賊"],
+      "target": "海賊出演者",
+      "note": "川越・小手指合同 (海賊は全て合同)"
+    }
+  ]
+}
