@@ -1,0 +1,5 @@
+.DS_Store
+sources/
+*.pdf
+*.swp
+node_modules/

@@ -1,0 +1,287 @@
+{
+  "version": 1,
+  "generated_at": "2026-05-18",
+  "month": "2026-05",
+  "month_label": "2026年5月",
+  "studios": {
+    "kawagoe": {
+      "name": "川越",
+      "color": "#3b82f6",
+      "bg": "#dbeafe"
+    },
+    "tokorozawa": {
+      "name": "所沢 (小手指)",
+      "color": "#f97316",
+      "bg": "#ffedd5"
+    },
+    "miyoshino": {
+      "name": "みよしの幼稚園",
+      "color": "#10b981",
+      "bg": "#d1fae5"
+    },
+    "joint": {
+      "name": "合同 (川越+所沢)",
+      "color": "#a855f7",
+      "bg": "#ede9fe"
+    }
+  },
+  "types": {
+    "lesson": {
+      "name": "通常レッスン",
+      "symbol": "L"
+    },
+    "rehearsal": {
+      "name": "リハーサル",
+      "symbol": "R"
+    },
+    "choreography": {
+      "name": "振付",
+      "symbol": "C"
+    }
+  },
+  "weekly_templates": [
+    {
+      "weekday": 1,
+      "weekday_name": "月",
+      "items": [
+        { "start": "10:30", "end": "11:45", "studio": "kawagoe",    "type": "lesson", "label": "Belleクラス",      "target": "未就学児" },
+        { "start": "11:50", "end": "12:20", "studio": "kawagoe",    "type": "lesson", "label": "Belleポワント",    "target": "未就学児" },
+        { "start": "11:45", "end": "13:00", "studio": "tokorozawa", "type": "lesson", "label": "Belleクラス",      "target": "未就学児" },
+        { "start": "17:15", "end": "18:30", "studio": "tokorozawa", "type": "lesson", "label": "Cクラス",          "target": "1〜3年生" },
+        { "start": "17:30", "end": "19:00", "studio": "kawagoe",    "type": "lesson", "label": "BCクラス",         "target": "1〜6年生" },
+        { "start": "18:30", "end": "20:00", "studio": "tokorozawa", "type": "lesson", "label": "ABクラス",         "target": "4年生以上" },
+        { "start": "19:00", "end": "20:30", "studio": "kawagoe",    "type": "lesson", "label": "Aクラス",          "target": "中学生以上" },
+        { "start": "20:00", "end": "20:30", "studio": "tokorozawa", "type": "lesson", "label": "P強化AB",          "target": "チケット制" }
+      ]
+    },
+    {
+      "weekday": 2,
+      "weekday_name": "火",
+      "items": [
+        { "start": "10:30", "end": "11:45", "studio": "kawagoe", "type": "lesson", "label": "Belleクラス", "target": "未就学児" },
+        { "start": "17:30", "end": "19:30", "studio": "kawagoe", "type": "lesson", "label": "合同レッスン", "target": "1〜3年生", "note": "1〜3年生は19:30まで" },
+        { "start": "17:30", "end": "20:30", "studio": "kawagoe", "type": "lesson", "label": "合同レッスン (リハ含む)", "target": "4年生以上", "note": "4年生以上は20:30までリハ含む" }
+      ]
+    },
+    {
+      "weekday": 3,
+      "weekday_name": "水",
+      "items": [
+        { "start": "10:30", "end": "11:45", "studio": "kawagoe",    "type": "lesson", "label": "Belleクラス", "target": "未就学児" },
+        { "start": "16:30", "end": "17:45", "studio": "tokorozawa", "type": "lesson", "label": "プレCクラス", "target": "未就学児" },
+        { "start": "17:45", "end": "19:15", "studio": "tokorozawa", "type": "lesson", "label": "ABクラス",    "target": "4年生以上" },
+        { "start": "18:00", "end": "19:30", "studio": "kawagoe",    "type": "lesson", "label": "ABクラス",    "target": "4年生以上" },
+        { "start": "19:30", "end": "20:00", "studio": "kawagoe",    "type": "lesson", "label": "P強化AB",     "target": "チケット制" }
+      ]
+    },
+    {
+      "weekday": 4,
+      "weekday_name": "木",
+      "items": [
+        { "start": "10:00", "end": "11:15", "studio": "kawagoe",    "type": "lesson", "label": "プレCクラス",     "target": "未就学児" },
+        { "start": "13:00", "end": "14:30", "studio": "kawagoe",    "type": "lesson", "label": "ABクラス (昼)",  "target": "4年生以上" },
+        { "start": "14:15", "end": "15:15", "studio": "miyoshino",  "type": "lesson", "label": "幼児クラス",     "target": "幼児" },
+        { "start": "14:30", "end": "15:00", "studio": "kawagoe",    "type": "lesson", "label": "P強化AB (昼)",  "target": "チケット制" },
+        { "start": "15:00", "end": "16:15", "studio": "tokorozawa", "type": "lesson", "label": "Belleクラス",    "target": "未就学児" },
+        { "start": "16:15", "end": "17:45", "studio": "tokorozawa", "type": "lesson", "label": "ABC合同クラス",  "target": "全学年" },
+        { "start": "17:00", "end": "18:30", "studio": "kawagoe",    "type": "lesson", "label": "BCクラス",       "target": "小学1〜4年生" },
+        { "start": "18:30", "end": "21:00", "studio": "kawagoe",    "type": "lesson", "label": "Aクラス (ポワント含む)", "target": "5年生以上", "note": "ポワントクラスは木曜" }
+      ]
+    },
+    {
+      "weekday": 5,
+      "weekday_name": "金",
+      "items": [
+        { "start": "10:00", "end": "11:30", "studio": "kawagoe", "type": "lesson", "label": "オーロラクラス", "target": "OG向け",     "note": "第2・3・4週" },
+        { "start": "11:30", "end": "13:00", "studio": "kawagoe", "type": "lesson", "label": "ヴァリエーション", "target": "希望者", "note": "第2・4週" },
+        { "start": "11:45", "end": "12:45", "studio": "kawagoe", "type": "lesson", "label": "ピラティス",     "target": "バレエ向け", "note": "第1・3週" }
+      ]
+    },
+    {
+      "weekday": 6,
+      "weekday_name": "土",
+      "items": [
+        { "start": "15:00", "end": "16:30", "studio": "kawagoe", "type": "lesson", "label": "一般クラス", "target": "一般" }
+      ]
+    },
+    {
+      "weekday": 0,
+      "weekday_name": "日",
+      "items": []
+    }
+  ],
+  "events": [
+    {
+      "date": "2026-05-02",
+      "start": "13:30",
+      "end": "15:30",
+      "studio": "kawagoe",
+      "type": "rehearsal",
+      "label": "リハ (土曜枠)",
+      "tags": [],
+      "target": "該当者",
+      "note": "Image 3 4月パターン参考、 詳細は LINE 確認"
+    },
+    {
+      "date": "2026-05-03",
+      "start": "13:30",
+      "end": "16:30",
+      "studio": "joint",
+      "type": "rehearsal",
+      "label": "海賊",
+      "tags": ["海賊"],
+      "target": "海賊出演者",
+      "note": "海賊小姓は 14:30〜 join。 海賊は全て合同"
+    },
+    {
+      "date": "2026-05-04",
+      "start": "10:00",
+      "end": "11:30",
+      "studio": "kawagoe",
+      "type": "rehearsal",
+      "label": "Bell",
+      "tags": ["Bell"],
+      "target": "Bell出演者"
+    },
+    {
+      "date": "2026-05-04",
+      "start": "13:00",
+      "end": "16:00",
+      "studio": "kawagoe",
+      "type": "rehearsal",
+      "label": "パドゥドゥ",
+      "tags": ["パドゥドゥ"],
+      "target": "パドゥドゥ出演者"
+    },
+    {
+      "date": "2026-05-05",
+      "start": "00:00",
+      "end": "23:59",
+      "studio": "kawagoe",
+      "type": "choreography",
+      "label": "振付のみ (レッスンお休み)",
+      "tags": [],
+      "target": "全員",
+      "note": "両スタジオお休み、 振替は6/30(火)"
+    },
+    {
+      "date": "2026-05-09",
+      "start": "10:00",
+      "end": "12:00",
+      "studio": "kawagoe",
+      "type": "lesson",
+      "label": "プレC",
+      "tags": [],
+      "target": "未就学児"
+    },
+    {
+      "date": "2026-05-09",
+      "start": "13:30",
+      "end": "15:30",
+      "studio": "kawagoe",
+      "type": "lesson",
+      "label": "ABクラス",
+      "tags": [],
+      "target": "4年生以上"
+    },
+    {
+      "date": "2026-05-09",
+      "start": "15:30",
+      "end": "17:30",
+      "studio": "kawagoe",
+      "type": "rehearsal",
+      "label": "リハ",
+      "tags": [],
+      "target": "該当者"
+    },
+    {
+      "date": "2026-05-10",
+      "start": "13:00",
+      "end": "15:30",
+      "studio": "kawagoe",
+      "type": "rehearsal",
+      "label": "ディアナ・トロワ・ガムザ・グルナーラ",
+      "tags": ["ディアナ", "トロワ", "ガムザ", "グルナーラ"],
+      "target": "各演目出演者"
+    },
+    {
+      "date": "2026-05-17",
+      "start": "13:30",
+      "end": "15:30",
+      "studio": "joint",
+      "type": "rehearsal",
+      "label": "海賊",
+      "tags": ["海賊"],
+      "target": "海賊出演者",
+      "note": "海賊は全て合同"
+    },
+    {
+      "date": "2026-05-17",
+      "start": "15:30",
+      "end": "17:30",
+      "studio": "kawagoe",
+      "type": "rehearsal",
+      "label": "海賊 Va",
+      "tags": ["海賊", "ヴァリエーション"],
+      "target": "海賊Va出演者"
+    },
+    {
+      "date": "2026-05-24",
+      "start": "13:00",
+      "end": "14:00",
+      "studio": "kawagoe",
+      "type": "rehearsal",
+      "label": "道化",
+      "tags": ["道化"],
+      "target": "道化出演者"
+    },
+    {
+      "date": "2026-05-24",
+      "start": "14:00",
+      "end": "15:30",
+      "studio": "kawagoe",
+      "type": "rehearsal",
+      "label": "貴婦人",
+      "tags": ["貴婦人"],
+      "target": "貴婦人出演者"
+    },
+    {
+      "date": "2026-05-31",
+      "start": "15:30",
+      "end": "17:00",
+      "studio": "kawagoe",
+      "type": "rehearsal",
+      "label": "宝石",
+      "tags": ["宝石"],
+      "target": "宝石出演者"
+    }
+  ],
+  "exceptions": [
+    {
+      "date": "2026-05-03",
+      "skip_templates": true,
+      "reason": "日曜 + リハ集中日"
+    },
+    {
+      "date": "2026-05-04",
+      "skip_templates": true,
+      "reason": "月曜 GW、 リハに置換"
+    },
+    {
+      "date": "2026-05-05",
+      "skip_templates": true,
+      "reason": "両スタジオお休み、 振付のみ (振替は6/30火)"
+    },
+    {
+      "date": "2026-05-09",
+      "skip_templates": true,
+      "reason": "土曜終日プログラム"
+    }
+  ],
+  "notes_global": [
+    "海賊の日はすべて合同 (川越+所沢)",
+    "5月から木曜にポワントクラス",
+    "5月から火曜は17:30〜合同レッスン (1〜3年は19:30、 4年以上は20:30まで)",
+    "ポワント強化クラスはチケット制"
+  ]
+}

@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
+<meta name="description" content="バレエスタジオ予定表">
+<meta name="robots" content="noindex, nofollow">
+<title>バレエスタジオ予定表</title>
+<style>
+  :root {
+    --bg: #fafaf9;
+    --fg: #1c1917;
+    --muted: #78716c;
+    --line: #e7e5e4;
+    --line-soft: #f1f1ef;
+    --card: #ffffff;
+    --accent: #be185d;
+    --sun: #dc2626;
+    --sat: #2563eb;
+    --hour-h: 36px;     /* 1 時間あたりの高さ */
+    --time-start: 8;    /* 表示開始 (時) */
+    --time-end: 22;     /* 表示終了 (時) */
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg); color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic UI", "Segoe UI", system-ui, sans-serif;
+    font-size: 15px; line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+  }
+  header.app-head {
+    padding: 10px 14px 6px;
+    background: var(--card);
+    border-bottom: 1px solid var(--line);
+    position: sticky; top: 0; z-index: 30;
+  }
+  h1 {
+    margin: 0; font-size: 15px; font-weight: 600;
+  }
+  .month-meta {
+    margin-top: 1px;
+    font-size: 11px; color: var(--muted);
+  }
+
+  /* Filters */
+  .filters {
+    background: var(--card);
+    border-bottom: 1px solid var(--line);
+    padding: 0 14px;
+  }
+  details { padding: 6px 0; }
+  summary {
+    cursor: pointer;
+    font-size: 13px; color: var(--muted);
+    list-style: none;
+    user-select: none;
+    padding: 4px 0;
+    display: flex; align-items: center; gap: 6px;
+  }
+  summary::-webkit-details-marker { display: none; }
+  .toggle-icon {
+    display: inline-block;
+    width: 14px;
+    text-align: center;
+    transition: transform 0.15s;
+    color: var(--muted);
+  }
+  details[open] > summary .toggle-icon { transform: rotate(90deg); }
+  .filter-group { margin-top: 6px; }
+  .filter-title-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 5px; gap: 8px;
+  }
+  .filter-title {
+    font-size: 11px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .filter-actions { display: flex; gap: 4px; }
+  .filter-actions button {
+    background: none;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 10px;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .filter-actions button:active { background: var(--line); }
+  .filter-buttons {
+    display: flex; flex-wrap: wrap; gap: 5px;
+    padding-bottom: 6px;
+  }
+  .chip {
+    border: 1px solid var(--line);
+    background: var(--card);
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+    font-family: inherit;
+    color: var(--fg);
+  }
+  .chip.active {
+    background: var(--fg); color: var(--bg);
+    border-color: var(--fg);
+  }
+  .chip[data-color] {
+    border-left: 4px solid var(--chip-color, var(--line));
+    padding-left: 8px;
+  }
+
+  /* Mini calendar (compact, collapsible) */
+  .mini-cal-wrap {
+    background: var(--card);
+    border-bottom: 1px solid var(--line);
+    padding: 0 14px;
+  }
+  .mini-cal-wrap details {
+    padding: 6px 0;
+  }
+  .mini-cal-wrap summary {
+    font-size: 12px;
+    color: var(--fg);
+    font-weight: 500;
+    padding: 4px 0;
+  }
+  .mini-cal-wrap summary .hint {
+    font-size: 10px;
+    color: var(--muted);
+    font-weight: 400;
+    margin-left: auto;
+  }
+  .mini-cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1px;
+    margin-top: 4px;
+    margin-bottom: 6px;
+  }
+  .mini-head {
+    text-align: center;
+    font-size: 9px; color: var(--muted);
+    padding: 2px 0 3px;
+  }
+  .mini-head.sun { color: var(--sun); }
+  .mini-head.sat { color: var(--sat); }
+  .mini-cell {
+    min-height: 26px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4px;
+    font-size: 11px;
+    cursor: pointer;
+    background: transparent;
+    color: var(--fg);
+    position: relative;
+  }
+  .mini-cell.empty {
+    cursor: default;
+    visibility: hidden;
+  }
+  .mini-cell.no-events {
+    color: var(--muted);
+    cursor: default;
+  }
+  .mini-cell.has-events {
+    background: var(--card);
+    border-color: var(--line);
+  }
+  .mini-cell:active.has-events {
+    background: var(--line-soft);
+  }
+  .mini-cell.today {
+    border-color: var(--accent);
+    box-shadow: inset 0 0 0 1px var(--accent);
+    font-weight: 700;
+  }
+  .mini-cell.exception::before {
+    content: "";
+    position: absolute;
+    inset: 2px;
+    background: repeating-linear-gradient(
+      135deg,
+      transparent 0 4px,
+      rgba(0,0,0,0.06) 4px 5px
+    );
+    pointer-events: none;
+    border-radius: 3px;
+  }
+  .mini-num {
+    font-variant-numeric: tabular-nums;
+    z-index: 1;
+  }
+  .mini-num.sun { color: var(--sun); }
+  .mini-num.sat { color: var(--sat); }
+  .mini-dots {
+    display: flex; gap: 1px;
+    z-index: 1;
+  }
+  .mini-dot {
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--dot-color);
+  }
+
+  /* Day list */
+  main {
+    padding: 8px 12px 40px;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  .day-sec {
+    margin-bottom: 10px;
+    scroll-margin-top: 60px;
+  }
+  .day-sec.empty {
+    margin-bottom: 2px;
+  }
+  .day-head {
+    display: flex; align-items: baseline; gap: 8px;
+    border-bottom: 1px solid var(--line);
+    padding: 4px 2px 3px;
+    margin-bottom: 4px;
+    position: relative;
+  }
+  .day-head .num {
+    font-size: 14px; font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .day-head.sun .num { color: var(--sun); }
+  .day-head.sat .num { color: var(--sat); }
+  .day-head .wday {
+    font-size: 11px; color: var(--muted);
+  }
+  .day-head.today {
+    border-bottom-color: var(--accent);
+  }
+  .day-head.today::after {
+    content: "今日";
+    position: absolute;
+    right: 4px;
+    font-size: 10px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .day-sec.empty .day-head {
+    border-bottom-color: transparent;
+    padding: 2px;
+    margin-bottom: 0;
+  }
+  .day-sec.empty .day-head .num {
+    font-weight: 400;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .day-sec.empty .day-head .wday { color: #a8a29e; }
+  .day-empty-msg {
+    font-size: 11px;
+    color: var(--muted);
+    padding: 0 4px 2px;
+  }
+  .day-note {
+    font-size: 11px;
+    color: var(--muted);
+    background: #f5f5f4;
+    border-radius: 4px;
+    padding: 4px 8px;
+    margin-bottom: 4px;
+  }
+  .allday-list {
+    margin-bottom: 4px;
+  }
+  .allday-block {
+    background: var(--studio-bg);
+    border-left: 3px solid var(--studio-color);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    margin-bottom: 3px;
+  }
+  .allday-block .lbl { font-weight: 500; }
+  .allday-block .meta { font-size: 11px; color: var(--muted); }
+
+  /* Outlook-style time grid */
+  .time-grid {
+    display: grid;
+    grid-template-columns: 36px 1fr;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .time-axis {
+    position: relative;
+    border-right: 1px solid var(--line);
+  }
+  .time-mark {
+    position: absolute;
+    width: 100%;
+    text-align: right;
+    padding-right: 5px;
+    font-size: 9px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    transform: translateY(-7px);
+  }
+  .time-content {
+    position: relative;
+  }
+  .grid-line {
+    position: absolute;
+    left: 0; right: 0;
+    height: 0;
+    border-top: 1px dotted var(--line-soft);
+    pointer-events: none;
+  }
+  .grid-line.hour { border-top-style: solid; border-top-color: var(--line-soft); }
+  .time-block {
+    position: absolute;
+    background: var(--studio-bg);
+    border-left: 3px solid var(--studio-color);
+    border-radius: 3px;
+    padding: 2px 4px;
+    font-size: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    line-height: 1.2;
+    min-height: 16px;
+    transition: filter 0.1s;
+  }
+  .time-block:active { filter: brightness(0.95); }
+  .time-block .blk-time {
+    font-variant-numeric: tabular-nums;
+    font-size: 9px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .time-block .blk-label {
+    font-weight: 500;
+    font-size: 10px;
+    margin-top: 1px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .time-block .blk-sym {
+    display: inline-block;
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    background: var(--studio-color); color: white;
+    text-align: center; line-height: 11px;
+    font-size: 7px; font-weight: 700;
+    margin-right: 2px;
+    vertical-align: middle;
+  }
+
+  /* Event detail modal-like */
+  .ev-detail-pop {
+    background: var(--card);
+    border: 1px solid var(--studio-color);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-top: 4px;
+    font-size: 13px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  }
+  .ev-detail-pop dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: 64px 1fr;
+    gap: 3px 8px;
+  }
+  .ev-detail-pop dt {
+    color: var(--muted); font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    align-self: center;
+  }
+  .ev-detail-pop dd { margin: 0; font-size: 13px; }
+  .ev-detail-pop .studio-tag { color: var(--studio-color); font-weight: 500; }
+  .ev-detail-pop .note-block {
+    background: #fafaf9;
+    border-radius: 4px;
+    padding: 5px 8px;
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .ev-detail-pop .close {
+    float: right;
+    font-size: 12px;
+    color: var(--muted);
+    cursor: pointer;
+    background: none; border: none;
+    font-family: inherit;
+    padding: 0;
+  }
+
+  /* Footer */
+  footer {
+    padding: 14px 14px 30px;
+    border-top: 1px solid var(--line);
+    background: var(--card);
+    margin-top: 16px;
+  }
+  .legend-title {
+    font-size: 11px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin-bottom: 5px;
+  }
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 6px 12px;
+    margin-bottom: 10px;
+    font-size: 12px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 4px; }
+  .legend-item .swatch {
+    width: 12px; height: 12px;
+    border-radius: 3px;
+    border-left: 4px solid var(--studio-color);
+    background: var(--studio-bg);
+  }
+  .legend-types { font-size: 11px; color: var(--muted); }
+  .notes ul { margin: 0; padding-left: 18px; }
+  .notes li { margin-bottom: 2px; font-size: 12px; color: var(--muted); }
+
+  /* Back-to-top */
+  .back-top {
+    position: fixed;
+    right: 12px; bottom: 12px;
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    background: var(--fg); color: var(--bg);
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    display: none;
+    z-index: 40;
+    font-family: inherit;
+  }
+  .back-top.show { display: block; }
+
+  @media (min-width: 600px) {
+    body { font-size: 16px; }
+    :root { --hour-h: 40px; }
+    header.app-head, .filters, .mini-cal-wrap, footer {
+      max-width: 720px;
+      margin-left: auto; margin-right: auto;
+    }
+    .mini-cell { min-height: 30px; }
+    .time-block .blk-label { font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="app-head">
+  <h1>バレエスタジオ予定表</h1>
+  <div class="month-meta" id="month-label">読み込み中…</div>
+</header>
+
+<section class="filters">
+  <details>
+    <summary><span class="toggle-icon">▸</span>絞り込み</summary>
+    <div class="filter-group">
+      <div class="filter-title-row">
+        <div class="filter-title">スタジオ</div>
+        <div class="filter-actions">
+          <button data-group="studios" data-action="all">全選択</button>
+          <button data-group="studios" data-action="none">全消し</button>
+        </div>
+      </div>
+      <div class="filter-buttons" id="studio-filters"></div>
+    </div>
+    <div class="filter-group">
+      <div class="filter-title-row">
+        <div class="filter-title">種別</div>
+        <div class="filter-actions">
+          <button data-group="types" data-action="all">全選択</button>
+          <button data-group="types" data-action="none">全消し</button>
+        </div>
+      </div>
+      <div class="filter-buttons" id="type-filters"></div>
+    </div>
+    <div class="filter-group">
+      <div class="filter-title-row">
+        <div class="filter-title">演目</div>
+        <div class="filter-actions">
+          <button data-group="pieces" data-action="all">全選択</button>
+          <button data-group="pieces" data-action="none">全消し</button>
+        </div>
+      </div>
+      <div class="filter-buttons" id="piece-filters"></div>
+    </div>
+  </details>
+</section>
+
+<section class="mini-cal-wrap">
+  <details id="mini-cal-details">
+    <summary>
+      <span class="toggle-icon">▸</span>
+      <span>月カレンダー</span>
+      <span class="hint">タップで日付ジャンプ</span>
+    </summary>
+    <div class="mini-cal-grid" id="mini-cal"></div>
+  </details>
+</section>
+
+<main id="day-list"></main>
+
+<footer>
+  <div class="legend-title">スタジオ凡例</div>
+  <div class="legend" id="legend"></div>
+  <div class="legend-types" id="legend-types"></div>
+  <div class="legend-title" style="margin-top:12px">補足</div>
+  <div class="notes" id="notes"></div>
+</footer>
+
+<button class="back-top" id="back-top" aria-label="一番上へ">↑</button>
+
+<script>
+'use strict';
+
+const WEEKDAY_JP = ['日','月','火','水','木','金','土'];
+const TODAY_ISO = new Date().toISOString().slice(0,10);
+const TIME_START_HOUR = 8;
+const TIME_END_HOUR = 22;
+const TIME_START_MIN = TIME_START_HOUR * 60;
+const TIME_END_MIN = TIME_END_HOUR * 60;
+
+let DATA = null;
+let HOUR_HEIGHT = 36;
+const filterState = {
+  studios: new Set(),
+  types: new Set(),
+  pieces: new Set(),
+};
+
+async function loadData() {
+  try {
+    const res = await fetch('./events.json', { cache: 'no-store' });
+    DATA = await res.json();
+    HOUR_HEIGHT = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--hour-h')) || 36;
+    init();
+  } catch (e) {
+    document.getElementById('month-label').textContent =
+      'events.json を読み込めません。 http サーバ経由で開いてください';
+    console.error(e);
+  }
+}
+
+function init() {
+  document.getElementById('month-label').textContent =
+    DATA.month_label + '  ·  更新 ' + DATA.generated_at;
+
+  Object.keys(DATA.studios).forEach(k => filterState.studios.add(k));
+  Object.keys(DATA.types).forEach(k => filterState.types.add(k));
+  const allPieces = collectPieces();
+  allPieces.forEach(p => filterState.pieces.add(p));
+
+  buildFilters(allPieces);
+  bindFilterActions();
+  buildLegend();
+  buildNotes();
+  bindBackToTop();
+  render();
+  scrollToTodayOrFirst();
+}
+
+function collectPieces() {
+  const set = new Set();
+  for (const ev of DATA.events) (ev.tags || []).forEach(t => set.add(t));
+  return [...set].sort((a,b) => a.localeCompare(b, 'ja'));
+}
+
+function buildFilters(pieces) {
+  const studioWrap = document.getElementById('studio-filters');
+  studioWrap.innerHTML = '';
+  for (const [key, s] of Object.entries(DATA.studios)) {
+    const btn = document.createElement('button');
+    btn.className = 'chip active';
+    btn.dataset.color = '';
+    btn.style.setProperty('--chip-color', s.color);
+    btn.textContent = s.name;
+    btn.addEventListener('click', () => toggleFilter('studios', key, btn));
+    studioWrap.appendChild(btn);
+  }
+
+  const typeWrap = document.getElementById('type-filters');
+  typeWrap.innerHTML = '';
+  for (const [key, t] of Object.entries(DATA.types)) {
+    const btn = document.createElement('button');
+    btn.className = 'chip active';
+    btn.textContent = t.symbol + '  ' + t.name;
+    btn.addEventListener('click', () => toggleFilter('types', key, btn));
+    typeWrap.appendChild(btn);
+  }
+
+  const pieceWrap = document.getElementById('piece-filters');
+  pieceWrap.innerHTML = '';
+  if (pieces.length === 0) {
+    pieceWrap.innerHTML = '<span style="font-size:12px;color:var(--muted)">演目タグなし</span>';
+  } else {
+    for (const p of pieces) {
+      const btn = document.createElement('button');
+      btn.className = 'chip active';
+      btn.textContent = p;
+      btn.addEventListener('click', () => toggleFilter('pieces', p, btn));
+      pieceWrap.appendChild(btn);
+    }
+  }
+}
+
+function bindFilterActions() {
+  document.querySelectorAll('.filter-actions button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const group = btn.dataset.group;
+      const action = btn.dataset.action;
+      const wrapId = group === 'studios' ? 'studio-filters'
+                   : group === 'types' ? 'type-filters'
+                   : 'piece-filters';
+      const wrap = document.getElementById(wrapId);
+      const chips = wrap.querySelectorAll('.chip');
+
+      if (group === 'studios' || group === 'types') {
+        const keys = Object.keys(group === 'studios' ? DATA.studios : DATA.types);
+        if (action === 'all') {
+          filterState[group] = new Set(keys);
+          chips.forEach(c => c.classList.add('active'));
+        } else {
+          filterState[group] = new Set();
+          chips.forEach(c => c.classList.remove('active'));
+        }
+      } else {
+        const pieces = collectPieces();
+        if (action === 'all') {
+          filterState.pieces = new Set(pieces);
+          chips.forEach(c => c.classList.add('active'));
+        } else {
+          filterState.pieces = new Set();
+          chips.forEach(c => c.classList.remove('active'));
+        }
+      }
+      render();
+    });
+  });
+}
+
+function toggleFilter(group, key, btn) {
+  if (filterState[group].has(key)) {
+    filterState[group].delete(key);
+    btn.classList.remove('active');
+  } else {
+    filterState[group].add(key);
+    btn.classList.add('active');
+  }
+  render();
+}
+
+function buildLegend() {
+  const wrap = document.getElementById('legend');
+  wrap.innerHTML = '';
+  for (const s of Object.values(DATA.studios)) {
+    const item = document.createElement('div');
+    item.className = 'legend-item';
+    item.style.setProperty('--studio-color', s.color);
+    item.style.setProperty('--studio-bg', s.bg);
+    item.innerHTML = '<span class="swatch"></span>' + s.name;
+    wrap.appendChild(item);
+  }
+  const types = document.getElementById('legend-types');
+  types.textContent = Object.values(DATA.types)
+    .map(t => t.symbol + ' = ' + t.name)
+    .join('   ·   ');
+}
+
+function buildNotes() {
+  const wrap = document.getElementById('notes');
+  if (!DATA.notes_global || DATA.notes_global.length === 0) return;
+  const ul = document.createElement('ul');
+  for (const n of DATA.notes_global) {
+    const li = document.createElement('li');
+    li.textContent = n;
+    ul.appendChild(li);
+  }
+  wrap.appendChild(ul);
+}
+
+function bindBackToTop() {
+  const btn = document.getElementById('back-top');
+  window.addEventListener('scroll', () => {
+    btn.classList.toggle('show', window.scrollY > 400);
+  }, { passive: true });
+  btn.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+}
+
+function getOccurrenceInMonth(date) {
+  return Math.ceil(date.getDate() / 7);
+}
+
+function parseWeekOccurrences(note) {
+  if (!note) return null;
+  const m = note.match(/第([\d・]+)週/);
+  if (!m) return null;
+  return m[1].split('・').map(Number);
+}
+
+function parseTimeMin(s) {
+  if (!s) return null;
+  const [h, m] = s.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function isExceptionDate(iso) {
+  return (DATA.exceptions || []).find(e => e.date === iso);
+}
+
+function collectItemsForDate(date) {
+  const iso = date.toISOString().slice(0,10);
+  const weekday = date.getDay();
+  const items = [];
+  const exception = isExceptionDate(iso);
+
+  if (!exception || !exception.skip_templates) {
+    const tpl = DATA.weekly_templates.find(t => t.weekday === weekday);
+    if (tpl) {
+      for (const it of tpl.items) {
+        const occ = parseWeekOccurrences(it.note);
+        if (occ && !occ.includes(getOccurrenceInMonth(date))) continue;
+        items.push({ ...it, date: iso, _source: 'template' });
+      }
+    }
+  }
+  for (const ev of DATA.events) {
+    if (ev.date === iso) items.push({ ...ev, _source: 'event' });
+  }
+  items.sort((a, b) => (a.start || '').localeCompare(b.start || ''));
+  return { items, exception };
+}
+
+function passesFilter(item) {
+  if (!filterState.studios.has(item.studio)) return false;
+  if (!filterState.types.has(item.type)) return false;
+  if (item.tags && item.tags.length > 0) {
+    if (!item.tags.some(t => filterState.pieces.has(t))) return false;
+  }
+  return true;
+}
+
+function buildMonthDates() {
+  const [y, m] = DATA.month.split('-').map(Number);
+  const first = new Date(y, m - 1, 1);
+  const last = new Date(y, m, 0);
+  const dates = [];
+  for (let d = 1; d <= last.getDate(); d++) {
+    dates.push(new Date(y, m - 1, d));
+  }
+  return { first, last, dates };
+}
+
+function dayAnchorId(date) {
+  return 'day-' + date.toISOString().slice(0,10);
+}
+
+function render() {
+  renderMiniCalendar();
+  renderDayList();
+}
+
+function renderMiniCalendar() {
+  const root = document.getElementById('mini-cal');
+  root.innerHTML = '';
+  const { first, dates } = buildMonthDates();
+
+  ['日','月','火','水','木','金','土'].forEach((w, i) => {
+    const h = document.createElement('div');
+    h.className = 'mini-head' + (i === 0 ? ' sun' : i === 6 ? ' sat' : '');
+    h.textContent = w;
+    root.appendChild(h);
+  });
+
+  for (let i = 0; i < first.getDay(); i++) {
+    const empty = document.createElement('div');
+    empty.className = 'mini-cell empty';
+    root.appendChild(empty);
+  }
+
+  for (const date of dates) {
+    const cell = document.createElement('div');
+    const iso = date.toISOString().slice(0,10);
+    const wd = date.getDay();
+    const { items, exception } = collectItemsForDate(date);
+    const visible = items.filter(passesFilter);
+
+    cell.className = 'mini-cell';
+    if (iso === TODAY_ISO) cell.classList.add('today');
+    if (exception) cell.classList.add('exception');
+    if (visible.length > 0) cell.classList.add('has-events');
+    else cell.classList.add('no-events');
+
+    const num = document.createElement('span');
+    num.className = 'mini-num' + (wd === 0 ? ' sun' : wd === 6 ? ' sat' : '');
+    num.textContent = date.getDate();
+    cell.appendChild(num);
+
+    const studios = [...new Set(visible.map(it => it.studio))];
+    if (studios.length > 0) {
+      const dots = document.createElement('span');
+      dots.className = 'mini-dots';
+      for (const sk of studios.slice(0, 4)) {
+        const d = document.createElement('span');
+        d.className = 'mini-dot';
+        d.style.setProperty('--dot-color', DATA.studios[sk].color);
+        dots.appendChild(d);
+      }
+      cell.appendChild(dots);
+    }
+
+    cell.addEventListener('click', () => {
+      const target = document.getElementById(dayAnchorId(date));
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    root.appendChild(cell);
+  }
+}
+
+function renderDayList() {
+  const root = document.getElementById('day-list');
+  root.innerHTML = '';
+  const { dates } = buildMonthDates();
+
+  for (const date of dates) {
+    const iso = date.toISOString().slice(0,10);
+    const wd = date.getDay();
+    const { items, exception } = collectItemsForDate(date);
+    const visible = items.filter(passesFilter);
+
+    const sec = document.createElement('section');
+    sec.className = 'day-sec' + (visible.length === 0 && !exception ? ' empty' : '');
+    sec.id = dayAnchorId(date);
+
+    const head = document.createElement('div');
+    head.className = 'day-head' + (wd === 0 ? ' sun' : wd === 6 ? ' sat' : '');
+    if (iso === TODAY_ISO) head.classList.add('today');
+    head.innerHTML = `<span class="num">${date.getMonth()+1}/${date.getDate()}</span><span class="wday">(${WEEKDAY_JP[wd]})</span>`;
+    sec.appendChild(head);
+
+    if (exception) {
+      const n = document.createElement('div');
+      n.className = 'day-note';
+      n.textContent = '※ ' + exception.reason;
+      sec.appendChild(n);
+    }
+
+    if (visible.length === 0 && !exception) {
+      const m = document.createElement('div');
+      m.className = 'day-empty-msg';
+      m.textContent = '予定なし';
+      sec.appendChild(m);
+    }
+
+    if (visible.length > 0) {
+      const inRange = [];
+      const outOfRange = [];
+      for (const it of visible) {
+        const s = parseTimeMin(it.start);
+        const e = parseTimeMin(it.end);
+        if (s == null || e == null || e <= TIME_START_MIN || s >= TIME_END_MIN || (s === 0 && e >= 23 * 60)) {
+          outOfRange.push(it);
+        } else {
+          inRange.push(it);
+        }
+      }
+
+      if (outOfRange.length > 0) {
+        const ad = document.createElement('div');
+        ad.className = 'allday-list';
+        for (const it of outOfRange) {
+          ad.appendChild(buildAllDayBlock(it));
+        }
+        sec.appendChild(ad);
+      }
+
+      if (inRange.length > 0) {
+        sec.appendChild(buildTimeGrid(inRange));
+      }
+    }
+
+    root.appendChild(sec);
+  }
+}
+
+function buildAllDayBlock(it) {
+  const studio = DATA.studios[it.studio];
+  const type = DATA.types[it.type];
+  const div = document.createElement('div');
+  div.className = 'allday-block';
+  div.style.setProperty('--studio-color', studio.color);
+  div.style.setProperty('--studio-bg', studio.bg);
+  div.innerHTML = `
+    <div><span class="lbl">${escapeHtml(it.label)}</span></div>
+    <div class="meta">${type.symbol} ${type.name} · ${escapeHtml(studio.name)}${it.note ? '  ·  ' + escapeHtml(it.note) : ''}</div>
+  `;
+  div.addEventListener('click', (e) => showDetailPop(it, div, e));
+  return div;
+}
+
+function assignColumns(items) {
+  // items sorted by start time, returns items with _col and shared _maxCols
+  const cols = []; // end time of last event in each column
+  const assigns = [];
+  for (const it of items) {
+    const s = parseTimeMin(it.start);
+    let placed = false;
+    for (let i = 0; i < cols.length; i++) {
+      if (cols[i] <= s) {
+        cols[i] = parseTimeMin(it.end);
+        assigns.push(i);
+        placed = true;
+        break;
+      }
+    }
+    if (!placed) {
+      assigns.push(cols.length);
+      cols.push(parseTimeMin(it.end));
+    }
+  }
+  const maxCols = cols.length;
+  return items.map((it, i) => ({ ...it, _col: assigns[i], _maxCols: maxCols }));
+}
+
+function buildTimeGrid(items) {
+  items.sort((a,b) => parseTimeMin(a.start) - parseTimeMin(b.start));
+  const laid = assignColumns(items);
+
+  const grid = document.createElement('div');
+  grid.className = 'time-grid';
+  const totalHours = TIME_END_HOUR - TIME_START_HOUR;
+  const totalHeight = totalHours * HOUR_HEIGHT;
+  grid.style.height = totalHeight + 'px';
+
+  const axis = document.createElement('div');
+  axis.className = 'time-axis';
+  for (let h = TIME_START_HOUR; h <= TIME_END_HOUR; h++) {
+    const mark = document.createElement('div');
+    mark.className = 'time-mark';
+    mark.style.top = ((h - TIME_START_HOUR) * HOUR_HEIGHT) + 'px';
+    mark.textContent = h + ':00';
+    axis.appendChild(mark);
+  }
+  grid.appendChild(axis);
+
+  const content = document.createElement('div');
+  content.className = 'time-content';
+  for (let h = 1; h < totalHours; h++) {
+    const line = document.createElement('div');
+    line.className = 'grid-line hour';
+    line.style.top = (h * HOUR_HEIGHT) + 'px';
+    content.appendChild(line);
+  }
+
+  for (const it of laid) {
+    const studio = DATA.studios[it.studio];
+    const type = DATA.types[it.type];
+    const startMin = Math.max(parseTimeMin(it.start), TIME_START_MIN);
+    const endMin = Math.min(parseTimeMin(it.end), TIME_END_MIN);
+    const top = ((startMin - TIME_START_MIN) / 60) * HOUR_HEIGHT;
+    const height = Math.max(((endMin - startMin) / 60) * HOUR_HEIGHT - 1, 14);
+
+    const colWidth = 100 / it._maxCols;
+    const left = it._col * colWidth;
+
+    const block = document.createElement('div');
+    block.className = 'time-block';
+    block.style.setProperty('--studio-color', studio.color);
+    block.style.setProperty('--studio-bg', studio.bg);
+    block.style.top = top + 'px';
+    block.style.height = height + 'px';
+    block.style.left = `calc(${left}% + 2px)`;
+    block.style.width = `calc(${colWidth}% - 4px)`;
+    block.innerHTML = `
+      <div class="blk-time"><span class="blk-sym">${type.symbol}</span>${it.start}–${it.end}</div>
+      <div class="blk-label">${escapeHtml(it.label)}</div>
+    `;
+    block.addEventListener('click', (e) => showDetailPop(it, block, e));
+    content.appendChild(block);
+  }
+
+  grid.appendChild(content);
+  return grid;
+}
+
+let currentPop = null;
+function showDetailPop(it, anchor, evt) {
+  evt.stopPropagation();
+  if (currentPop) {
+    currentPop.remove();
+    currentPop = null;
+  }
+  const studio = DATA.studios[it.studio];
+  const type = DATA.types[it.type];
+  const pop = document.createElement('div');
+  pop.className = 'ev-detail-pop';
+  pop.style.setProperty('--studio-color', studio.color);
+  pop.style.borderLeftWidth = '4px';
+  pop.style.borderLeftColor = studio.color;
+
+  const rows = [];
+  rows.push(`<dt>スタジオ</dt><dd><span class="studio-tag">${escapeHtml(studio.name)}</span></dd>`);
+  rows.push(`<dt>種別</dt><dd>${escapeHtml(type.name)}</dd>`);
+  rows.push(`<dt>時間</dt><dd>${it.start} – ${it.end}</dd>`);
+  if (it.target) rows.push(`<dt>対象</dt><dd>${escapeHtml(it.target)}</dd>`);
+  if (it.tags && it.tags.length > 0) {
+    rows.push(`<dt>演目</dt><dd>${it.tags.map(escapeHtml).join(' · ')}</dd>`);
+  }
+  pop.innerHTML = `
+    <button class="close" aria-label="閉じる">✕</button>
+    <div style="font-weight:600; margin-bottom:6px">${escapeHtml(it.label)}</div>
+    <dl>${rows.join('')}</dl>
+    ${it.note ? `<div class="note-block">${escapeHtml(it.note)}</div>` : ''}
+  `;
+  pop.querySelector('.close').addEventListener('click', () => { pop.remove(); currentPop = null; });
+  const daySec = anchor.closest('.day-sec');
+  daySec.appendChild(pop);
+  currentPop = pop;
+
+  document.addEventListener('click', dismissOnOutside);
+}
+function dismissOnOutside(e) {
+  if (currentPop && !currentPop.contains(e.target)) {
+    currentPop.remove();
+    currentPop = null;
+    document.removeEventListener('click', dismissOnOutside);
+  }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
+function scrollToTodayOrFirst() {
+  const { dates } = buildMonthDates();
+  let target = null;
+  for (const d of dates) {
+    if (d.toISOString().slice(0,10) === TODAY_ISO) {
+      target = document.getElementById(dayAnchorId(d));
+      break;
+    }
+  }
+  if (!target) {
+    for (const d of dates) {
+      const { items, exception } = collectItemsForDate(d);
+      if (exception || items.length > 0) {
+        target = document.getElementById(dayAnchorId(d));
+        break;
+      }
+    }
+  }
+  if (target) {
+    setTimeout(() => target.scrollIntoView({ behavior: 'auto', block: 'start' }), 50);
+  }
+}
+
+loadData();
+</script>
+</body>
+</html>
