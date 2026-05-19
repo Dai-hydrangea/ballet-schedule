@@ -1775,7 +1775,16 @@ function navigateMonth(delta) {
   const d = new Date(y, m - 1 + delta, 1);
   const target = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, '0')}`;
   if (target < MONTH_RANGE_MIN || target > MONTH_RANGE_MAX) return;
-  loadMonth(target);
+  if (CURRENT_VIEW === 'agenda') {
+    // Scroll to that month's first card in the agenda
+    if (!scrollAgendaToMonth(target)) {
+      // No card for that month — just update label
+      CURRENT_MONTH = target;
+      document.getElementById('month-label').textContent = formatMonthLabel(target);
+    }
+  } else {
+    loadMonth(target);
+  }
 }
 
 function updateNavButtons() {
@@ -1982,6 +1991,46 @@ function isAllDay(it) {
 }
 
 let CURRENT_VIEW = 'month';
+let ALL_MONTHS_CACHE = null;
+let AGENDA_SCROLL_BOUND = false;
+let AGENDA_SCROLL_DEBOUNCE = null;
+
+function invalidateAllMonthsCache() {
+  ALL_MONTHS_CACHE = null;
+}
+
+async function loadAllMonths() {
+  if (ALL_MONTHS_CACHE) return ALL_MONTHS_CACHE;
+
+  const [cy, cm] = CURRENT_MONTH.split('-').map(Number);
+  const candidates = [];
+  for (let i = -12; i <= 12; i++) {
+    const d = new Date(cy, cm - 1 + i, 1);
+    const mm = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    if (mm < MONTH_RANGE_MIN || mm > MONTH_RANGE_MAX) continue;
+    candidates.push(mm);
+  }
+
+  const results = await Promise.all(candidates.map(async (mm) => {
+    let data = null;
+    if (API_BASE_URL) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/data/${mm}`, { cache: 'no-store' });
+        if (res.ok) data = await res.json();
+      } catch (e) {}
+    }
+    if (!data) {
+      try {
+        const res = await fetch(`./data/${mm}.json?v=${BUILD_VERSION}`, { cache: 'no-store' });
+        if (res.ok) data = await res.json();
+      } catch (e) {}
+    }
+    return { month: mm, data };
+  }));
+
+  ALL_MONTHS_CACHE = results.filter(r => r.data && Array.isArray(r.data.events) && r.data.events.length > 0);
+  return ALL_MONTHS_CACHE;
+}
 
 function bindViewToggle() {
   document.querySelectorAll('.view-mode-btn').forEach(btn => {
@@ -2000,41 +2049,106 @@ function render() {
   document.getElementById('cal-head-row').hidden = !monthMode;
   document.getElementById('cal-grid').hidden = !monthMode;
   document.getElementById('agenda-carousel').hidden = monthMode;
-  if (monthMode) renderCalendar();
-  else renderAgenda();
+  if (monthMode) {
+    renderCalendar();
+  } else {
+    document.getElementById('month-meta').textContent = '予定がある日だけ表示中';
+    renderAgenda();
+  }
 }
 
-function renderAgenda() {
+async function renderAgenda() {
   const root = document.getElementById('agenda-carousel');
+  root.innerHTML = '<div class="agenda-empty">読み込み中…</div>';
+
+  const monthsData = await loadAllMonths();
   root.innerHTML = '';
 
-  const { dates } = buildMonthDates();
-  const days = [];
-  for (const d of dates) {
-    const iso = isoLocal(d);
-    const items = eventsForDate(iso).filter(passesFilter);
-    if (items.length > 0) days.push({ date: d, iso, items });
+  // Group all events across all months by date
+  const byDate = new Map();
+  for (const { data } of monthsData) {
+    for (const ev of data.events) {
+      if (!byDate.has(ev.date)) byDate.set(ev.date, []);
+      byDate.get(ev.date).push(ev);
+    }
   }
 
-  if (days.length === 0) {
-    const empty = document.createElement('div');
-    empty.className = 'agenda-empty';
-    empty.textContent = 'この月は予定なし';
-    root.appendChild(empty);
+  const allIsos = [...byDate.keys()].sort();
+  let cardsAdded = 0;
+  for (const iso of allIsos) {
+    const items = byDate.get(iso).filter(passesFilter);
+    if (items.length === 0) continue;
+    const [y, mo, d] = iso.split('-').map(Number);
+    const date = new Date(y, mo - 1, d);
+    const card = buildAgendaCard(date, iso, items);
+    card.dataset.iso = iso;
+    root.appendChild(card);
+    cardsAdded++;
+  }
+
+  if (cardsAdded === 0) {
+    root.innerHTML = '<div class="agenda-empty">予定がある日がまだありません</div>';
     return;
   }
 
-  for (const { date, iso, items } of days) {
-    root.appendChild(buildAgendaCard(date, iso, items));
-  }
+  // Scroll today's card (or nearest future) to center
+  requestAnimationFrame(() => {
+    let target = root.querySelector('.agenda-card.today');
+    if (!target) {
+      const cards = root.querySelectorAll('.agenda-card');
+      for (const c of cards) {
+        if (c.dataset.iso >= TODAY_ISO) { target = c; break; }
+      }
+      if (!target && cards.length > 0) target = cards[cards.length - 1];
+    }
+    if (target) target.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' });
+    syncMonthLabelFromAgenda();
+  });
 
-  // Scroll the "today" card (or first card) into center on render
-  const todayCard = root.querySelector('.agenda-card.today') || root.firstChild;
-  if (todayCard) {
-    requestAnimationFrame(() => {
-      todayCard.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' });
-    });
+  // Bind scroll observer once
+  if (!AGENDA_SCROLL_BOUND) {
+    root.addEventListener('scroll', () => {
+      if (AGENDA_SCROLL_DEBOUNCE) clearTimeout(AGENDA_SCROLL_DEBOUNCE);
+      AGENDA_SCROLL_DEBOUNCE = setTimeout(syncMonthLabelFromAgenda, 80);
+    }, { passive: true });
+    AGENDA_SCROLL_BOUND = true;
   }
+}
+
+function syncMonthLabelFromAgenda() {
+  if (CURRENT_VIEW !== 'agenda') return;
+  const root = document.getElementById('agenda-carousel');
+  const rect = root.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const cards = root.querySelectorAll('.agenda-card');
+  let closest = null;
+  let closestDist = Infinity;
+  for (const c of cards) {
+    const cr = c.getBoundingClientRect();
+    const cx = cr.left + cr.width / 2;
+    const dist = Math.abs(centerX - cx);
+    if (dist < closestDist) { closestDist = dist; closest = c; }
+  }
+  if (!closest || !closest.dataset.iso) return;
+  const month = closest.dataset.iso.slice(0, 7);
+  if (month !== CURRENT_MONTH) {
+    CURRENT_MONTH = month;
+    document.getElementById('month-label').textContent = formatMonthLabel(month);
+    document.getElementById('month-meta').textContent = '予定がある日だけ表示中';
+    updateNavButtons();
+  }
+}
+
+function scrollAgendaToMonth(targetMonth) {
+  const root = document.getElementById('agenda-carousel');
+  const cards = root.querySelectorAll('.agenda-card');
+  for (const c of cards) {
+    if (c.dataset.iso && c.dataset.iso.startsWith(targetMonth)) {
+      c.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      return true;
+    }
+  }
+  return false;
 }
 
 function buildAgendaCard(date, iso, items) {
@@ -2816,6 +2930,7 @@ async function saveAddedEvent() {
     // 元の day sheet を再描画 (もし開いていれば)
     const wasEditing = ADD_SHEET_EDITING;
     closeAddSheet();
+    invalidateAllMonthsCache();
     await loadMonth(CURRENT_MONTH);
     if (wasEditing) {
       const [y, m, d] = (wasEditing.date || newEv.date).split('-').map(Number);
@@ -2860,6 +2975,7 @@ async function deleteCurrentEvent() {
     const json = await res.json();
     if (!res.ok) throw new Error((json.error || '') + (json.detail ? ': ' + json.detail : ''));
     closeAddSheet();
+    invalidateAllMonthsCache();
     await loadMonth(CURRENT_MONTH);
     const [y, m, d] = target.date.split('-').map(Number);
     openDaySheet(new Date(y, m - 1, d));
@@ -3420,6 +3536,7 @@ async function saveEdits() {
 
     const savedDateObj = EDIT_STATE.dateObj;
     EDIT_STATE = null;
+    invalidateAllMonthsCache();
     await loadMonth(CURRENT_MONTH);
     openDaySheet(savedDateObj);
     checkNewChanges();
@@ -4197,6 +4314,7 @@ async function uploadCurrentPreview() {
     setImportStatus(`アップロード成功: ${payload.month} に ${json.count} 件保存。 リロードで反映`, 'success');
     // Refresh if uploaded month is current
     if (payload.month === CURRENT_MONTH) {
+      invalidateAllMonthsCache();
       setTimeout(() => loadMonth(CURRENT_MONTH), 500);
     }
     checkNewChanges();
