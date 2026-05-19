@@ -2265,6 +2265,67 @@ function updateAgendaNavButtons(centerIdx, total) {
 function bindAgendaNav() {
   document.getElementById('agenda-prev').addEventListener('click', () => scrollAgendaByOne(-1));
   document.getElementById('agenda-next').addEventListener('click', () => scrollAgendaByOne(+1));
+  bindAgendaSwipeLimit();
+}
+
+function currentAgendaCenterIdx() {
+  const root = document.getElementById('agenda-carousel');
+  const cards = [...root.querySelectorAll('.agenda-card')];
+  if (cards.length === 0) return -1;
+  const rect = root.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  let idx = 0;
+  let dist = Infinity;
+  cards.forEach((c, i) => {
+    const cr = c.getBoundingClientRect();
+    const cx = cr.left + cr.width / 2;
+    const d = Math.abs(centerX - cx);
+    if (d < dist) { dist = d; idx = i; }
+  });
+  return idx;
+}
+
+let AGENDA_SWIPE_START_IDX = null;
+let AGENDA_SWIPE_SETTLE_TIMER = null;
+
+function bindAgendaSwipeLimit() {
+  const root = document.getElementById('agenda-carousel');
+
+  root.addEventListener('touchstart', () => {
+    if (AGENDA_SWIPE_SETTLE_TIMER) {
+      clearTimeout(AGENDA_SWIPE_SETTLE_TIMER);
+      AGENDA_SWIPE_SETTLE_TIMER = null;
+    }
+    AGENDA_SWIPE_START_IDX = currentAgendaCenterIdx();
+  }, { passive: true });
+
+  root.addEventListener('touchend', () => {
+    if (AGENDA_SWIPE_START_IDX == null) return;
+    const startIdx = AGENDA_SWIPE_START_IDX;
+    AGENDA_SWIPE_START_IDX = null;
+
+    // Wait briefly for iOS inertial scroll to settle, then snap to ±1
+    AGENDA_SWIPE_SETTLE_TIMER = setTimeout(() => {
+      const currentIdx = currentAgendaCenterIdx();
+      const cards = [...root.querySelectorAll('.agenda-card')];
+      if (cards.length === 0) return;
+      let targetIdx;
+      if (currentIdx > startIdx) {
+        targetIdx = Math.min(cards.length - 1, startIdx + 1);
+      } else if (currentIdx < startIdx) {
+        targetIdx = Math.max(0, startIdx - 1);
+      } else {
+        targetIdx = startIdx;
+      }
+      if (targetIdx !== currentIdx) {
+        cards[targetIdx].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    }, 260);
+  }, { passive: true });
+
+  root.addEventListener('touchcancel', () => {
+    AGENDA_SWIPE_START_IDX = null;
+  });
 }
 
 function buildAgendaCard(date, iso, items) {
