@@ -38,6 +38,8 @@
     --hour-h: 36px;
   }
   * { box-sizing: border-box; }
+  /* Ensure [hidden] always wins over display: flex/grid etc. */
+  [hidden] { display: none !important; }
   html, body {
     margin: 0; padding: 0;
     background: var(--bg); color: var(--fg);
@@ -116,6 +118,37 @@
   }
 
   /* Agenda carousel (horizontal scrolling cards, one per day with events) */
+  .agenda-wrap {
+    position: relative;
+    margin: 4px 0;
+  }
+  .agenda-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    background: var(--card);
+    border: 1.5px solid var(--accent);
+    border-radius: 50%;
+    width: 38px; height: 38px;
+    font-size: 16px;
+    color: var(--accent-deep);
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: 0 2px 10px rgba(232, 138, 165, 0.25);
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .agenda-nav-btn.prev { left: 4px; }
+  .agenda-nav-btn.next { right: 4px; }
+  .agenda-nav-btn:active { background: var(--accent-soft); transform: translateY(-50%) scale(0.95); }
+  .agenda-nav-btn:disabled {
+    opacity: 0.3;
+    cursor: default;
+    box-shadow: none;
+  }
   .agenda-carousel {
     display: flex;
     overflow-x: auto;
@@ -1454,7 +1487,11 @@
 <main>
   <div class="cal-head-row" id="cal-head-row"></div>
   <div class="cal-grid" id="cal-grid"></div>
-  <div class="agenda-carousel" id="agenda-carousel" hidden></div>
+  <div class="agenda-wrap" id="agenda-wrap" hidden>
+    <button class="agenda-nav-btn prev" id="agenda-prev" aria-label="前の予定">◀</button>
+    <div class="agenda-carousel" id="agenda-carousel"></div>
+    <button class="agenda-nav-btn next" id="agenda-next" aria-label="次の予定">▶</button>
+  </div>
 </main>
 
 <footer>
@@ -1690,6 +1727,7 @@ async function bootstrap() {
     bindTplModal();
     bindNewsModal();
     bindViewToggle();
+    bindAgendaNav();
     renderCalendarHeads();
 
     const initialMonth = pickInitialMonth();
@@ -2046,9 +2084,14 @@ function bindViewToggle() {
 
 function render() {
   const monthMode = CURRENT_VIEW === 'month';
+  // Month-mode UI
   document.getElementById('cal-head-row').hidden = !monthMode;
   document.getElementById('cal-grid').hidden = !monthMode;
-  document.getElementById('agenda-carousel').hidden = monthMode;
+  document.getElementById('prev-month').hidden = !monthMode;
+  document.getElementById('next-month').hidden = !monthMode;
+  // Agenda-mode UI (wrap hides carousel + nav buttons together)
+  document.getElementById('agenda-wrap').hidden = monthMode;
+
   if (monthMode) {
     renderCalendar();
   } else {
@@ -2120,22 +2163,23 @@ function syncMonthLabelFromAgenda() {
   const root = document.getElementById('agenda-carousel');
   const rect = root.getBoundingClientRect();
   const centerX = rect.left + rect.width / 2;
-  const cards = root.querySelectorAll('.agenda-card');
+  const cards = [...root.querySelectorAll('.agenda-card')];
   let closest = null;
+  let closestIdx = -1;
   let closestDist = Infinity;
-  for (const c of cards) {
+  cards.forEach((c, i) => {
     const cr = c.getBoundingClientRect();
     const cx = cr.left + cr.width / 2;
     const dist = Math.abs(centerX - cx);
-    if (dist < closestDist) { closestDist = dist; closest = c; }
-  }
+    if (dist < closestDist) { closestDist = dist; closest = c; closestIdx = i; }
+  });
+  if (closestIdx >= 0) updateAgendaNavButtons(closestIdx, cards.length);
   if (!closest || !closest.dataset.iso) return;
   const month = closest.dataset.iso.slice(0, 7);
   if (month !== CURRENT_MONTH) {
     CURRENT_MONTH = month;
     document.getElementById('month-label').textContent = formatMonthLabel(month);
     document.getElementById('month-meta').textContent = '予定がある日だけ表示中';
-    updateNavButtons();
   }
 }
 
@@ -2149,6 +2193,39 @@ function scrollAgendaToMonth(targetMonth) {
     }
   }
   return false;
+}
+
+function scrollAgendaByOne(direction) {
+  const root = document.getElementById('agenda-carousel');
+  const cards = [...root.querySelectorAll('.agenda-card')];
+  if (cards.length === 0) return;
+
+  const rect = root.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  let centerIdx = 0;
+  let closestDist = Infinity;
+  cards.forEach((c, i) => {
+    const cr = c.getBoundingClientRect();
+    const cx = cr.left + cr.width / 2;
+    const dist = Math.abs(centerX - cx);
+    if (dist < closestDist) { closestDist = dist; centerIdx = i; }
+  });
+  const targetIdx = Math.max(0, Math.min(cards.length - 1, centerIdx + direction));
+  cards[targetIdx].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  updateAgendaNavButtons(targetIdx, cards.length);
+}
+
+function updateAgendaNavButtons(centerIdx, total) {
+  const prevBtn = document.getElementById('agenda-prev');
+  const nextBtn = document.getElementById('agenda-next');
+  if (!prevBtn || !nextBtn) return;
+  prevBtn.disabled = centerIdx <= 0;
+  nextBtn.disabled = centerIdx >= total - 1;
+}
+
+function bindAgendaNav() {
+  document.getElementById('agenda-prev').addEventListener('click', () => scrollAgendaByOne(-1));
+  document.getElementById('agenda-next').addEventListener('click', () => scrollAgendaByOne(+1));
 }
 
 function buildAgendaCard(date, iso, items) {
