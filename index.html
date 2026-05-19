@@ -989,32 +989,80 @@
     border: 1.5px solid var(--line);
     border-radius: 10px;
     padding: 10px 12px;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
   }
   .news-item .news-ts {
     font-size: 11px;
     color: var(--muted);
     font-variant-numeric: tabular-nums;
+    margin-bottom: 6px;
   }
   .news-item .news-summary {
     font-size: 13px;
     color: var(--fg);
-    margin-top: 4px;
     white-space: pre-line;
     line-height: 1.5;
     font-variant-numeric: tabular-nums;
   }
-  .news-item .news-jump {
-    margin-top: 6px;
-    font-size: 12px;
-    color: var(--accent-deep);
+  .news-changes { display: flex; flex-direction: column; gap: 4px; }
+  .news-change {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 8px;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 8px;
     cursor: pointer;
-    background: none;
-    border: none;
-    padding: 0;
-    text-decoration: underline;
-    text-underline-offset: 2px;
+    font-size: 12px;
     font-family: inherit;
+    text-align: left;
+    border: 1.5px solid transparent;
+    line-height: 1.4;
+    font-variant-numeric: tabular-nums;
+    color: var(--fg);
+  }
+  .news-change:active { transform: scale(0.98); }
+  .news-change.added {
+    background: #e6f6e6;
+    border-color: #b8e5b8;
+  }
+  .news-change.added:hover { background: #d8f0d8; }
+  .news-change.removed {
+    background: #fde8e8;
+    border-color: #f5c2c2;
+    text-decoration: line-through;
+    text-decoration-color: rgba(201, 42, 42, 0.4);
+  }
+  .news-change.removed:hover { background: #fad8d8; }
+  .news-change .nc-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.7);
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .news-change.added .nc-icon { color: #2b8a2b; }
+  .news-change.removed .nc-icon { color: #c92a2a; }
+  .news-change .nc-body {
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 6px;
+    align-items: baseline;
+  }
+  .news-change .nc-date {
+    font-weight: 700;
+    color: var(--accent-deep);
+  }
+  .news-change .nc-time { color: var(--muted); font-size: 11px; }
+  .news-change .nc-label { font-weight: 500; }
+  .news-changes-more {
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+    padding: 4px;
   }
   .news-empty {
     color: var(--muted);
@@ -3019,20 +3067,70 @@ function renderHistory(entries) {
     div.className = 'news-item';
     const ts = new Date(e.ts);
     const tsStr = `${ts.getMonth()+1}/${ts.getDate()} ${String(ts.getHours()).padStart(2,'0')}:${String(ts.getMinutes()).padStart(2,'0')}`;
-    div.innerHTML = `
-      <div class="news-ts">${tsStr}</div>
-      <div class="news-summary">${escapeHtml(e.summary || '(変更)')}</div>
-    `;
-    if (e.month) {
-      const jump = document.createElement('button');
-      jump.className = 'news-jump';
-      jump.textContent = `→ ${formatMonthLabel(e.month)} を見る`;
-      jump.addEventListener('click', () => {
-        closeNewsSheet();
-        if (e.month !== CURRENT_MONTH) loadMonth(e.month);
-      });
-      div.appendChild(jump);
+
+    const head = document.createElement('div');
+    head.className = 'news-ts';
+    head.textContent = tsStr;
+    div.appendChild(head);
+
+    const hasStructured = (Array.isArray(e.added_items) && e.added_items.length > 0)
+                       || (Array.isArray(e.removed_items) && e.removed_items.length > 0);
+
+    if (hasStructured) {
+      const wrap = document.createElement('div');
+      wrap.className = 'news-changes';
+
+      const renderChange = (ev, type) => {
+        const m = parseInt(ev.date.split('-')[1], 10);
+        const d = parseInt(ev.date.split('-')[2], 10);
+        const btn = document.createElement('button');
+        btn.className = 'news-change ' + type;
+        btn.type = 'button';
+        btn.innerHTML = `
+          <span class="nc-icon">${type === 'added' ? '+' : '−'}</span>
+          <span class="nc-body">
+            <span class="nc-date">${m}/${d}</span>
+            <span class="nc-time">${escapeHtml(ev.start || '')}–${escapeHtml(ev.end || '')}</span>
+            <span class="nc-label">${escapeHtml(ev.label || '')}</span>
+          </span>
+        `;
+        btn.addEventListener('click', () => {
+          closeNewsSheet();
+          // Switch month if needed, then open day sheet
+          const evMonth = ev.date.slice(0, 7);
+          const [y, mo, da] = ev.date.split('-').map(Number);
+          const dateObj = new Date(y, mo - 1, da);
+          if (evMonth !== CURRENT_MONTH) {
+            loadMonth(evMonth).then(() => openDaySheet(dateObj));
+          } else {
+            openDaySheet(dateObj);
+          }
+        });
+        return btn;
+      };
+
+      const MAX_PER_ENTRY = 10;
+      const all = [
+        ...(e.added_items || []).map(ev => ({ ev, type: 'added' })),
+        ...(e.removed_items || []).map(ev => ({ ev, type: 'removed' })),
+      ];
+      const shown = all.slice(0, MAX_PER_ENTRY);
+      for (const { ev, type } of shown) wrap.appendChild(renderChange(ev, type));
+      if (all.length > MAX_PER_ENTRY) {
+        const more = document.createElement('div');
+        more.className = 'news-changes-more';
+        more.textContent = `... 他 ${all.length - MAX_PER_ENTRY} 件`;
+        wrap.appendChild(more);
+      }
+      div.appendChild(wrap);
+    } else {
+      // Legacy entries (old summary string only)
+      const sum = document.createElement('div');
+      sum.className = 'news-summary';
+      sum.textContent = e.summary || '(変更)';
+      div.appendChild(sum);
     }
+
     list.appendChild(div);
   }
 }

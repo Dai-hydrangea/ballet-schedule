@@ -121,6 +121,8 @@ function summarizeChange(prev, next) {
   return {
     summary,
     counts: { added: added.length, removed: removed.length, before: prevEvents.length, after: nextEvents.length },
+    added_items: added.map(ev => ({ date: ev.date, start: ev.start, end: ev.end, label: ev.label, studio: ev.studio })),
+    removed_items: removed.map(ev => ({ date: ev.date, start: ev.start, end: ev.end, label: ev.label, studio: ev.studio })),
   };
 }
 
@@ -206,6 +208,8 @@ export default {
         month,
         summary: change.summary,
         counts: change.counts,
+        added_items: change.added_items,
+        removed_items: change.removed_items,
       });
 
       return jsonResponse({ ok: true, month, count: body.events.length, version: newVersion });
