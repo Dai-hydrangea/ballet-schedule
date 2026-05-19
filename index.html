@@ -117,7 +117,7 @@
     color: white;
   }
 
-  /* Agenda carousel (horizontal scrolling cards, one per day with events) */
+  /* Agenda: self-built pager (no native scroll → no inertia overshoot) */
   .agenda-wrap {
     position: relative;
     margin: 4px 0;
@@ -149,33 +149,31 @@
     cursor: default;
     box-shadow: none;
   }
-  .agenda-carousel {
-    display: flex;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    gap: 10px;
-    padding: 10px 12px 14px;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: thin;
-    scrollbar-color: var(--accent-soft) transparent;
+  .agenda-viewport {
+    overflow: hidden;
+    width: 100%;
+    position: relative;
+    padding: 10px 0 14px;
+    touch-action: pan-y;  /* allow vertical page scroll, no horizontal native scroll */
   }
-  .agenda-carousel::-webkit-scrollbar { height: 6px; }
-  .agenda-carousel::-webkit-scrollbar-thumb {
-    background: var(--accent-soft);
-    border-radius: 3px;
+  .agenda-track {
+    display: flex;
+    gap: 10px;
+    transition: transform 0.28s cubic-bezier(0.2, 0.7, 0.3, 1);
+    will-change: transform;
+    padding: 0 12px;
+  }
+  .agenda-track.dragging {
+    transition: none;
   }
   .agenda-card {
-    flex: 0 0 calc(50% - 5px);
-    max-width: 360px;
-    min-width: 200px;
-    scroll-snap-align: center;
-    scroll-snap-stop: always;
+    flex: 0 0 calc(100% - 24px);
+    max-width: 720px;
     background: var(--card);
     border: 1.5px solid var(--line);
     border-radius: 14px;
-    padding: 10px 10px 12px;
+    padding: 12px 14px 14px;
     box-shadow: 0 2px 12px rgba(232, 138, 165, 0.08);
-    transition: transform 0.12s;
   }
   .agenda-card.today {
     border-color: var(--accent);
@@ -191,7 +189,7 @@
     margin-bottom: 6px;
   }
   .agenda-num {
-    font-size: 18px;
+    font-size: 24px;
     font-weight: 700;
     color: var(--accent-deep);
     font-variant-numeric: tabular-nums;
@@ -199,80 +197,38 @@
   }
   .agenda-head.sun .agenda-num { color: var(--sun); }
   .agenda-head.sat .agenda-num { color: var(--sat); }
-  .agenda-wd { font-size: 11px; color: var(--muted); }
+  .agenda-wd { font-size: 13px; color: var(--muted); }
   .agenda-today-mark {
-    font-size: 9px;
+    font-size: 11px;
     color: var(--accent);
     font-weight: 600;
-    margin-left: 2px;
+    margin-left: 4px;
   }
   .agenda-count {
     margin-left: auto;
-    font-size: 9px;
+    font-size: 11px;
     color: var(--accent-deep);
     background: var(--accent-soft);
     border-radius: 999px;
-    padding: 1px 6px;
+    padding: 2px 8px;
     font-weight: 600;
   }
-  /* Compact time grid inside agenda card */
-  .agenda-card .time-sides-head {
-    font-size: 8px;
-    padding: 3px 0 3px;
-    border-radius: 6px 6px 0 0;
-  }
-  .agenda-card .time-grid {
-    grid-template-columns: 26px 1fr 1fr;
-    border-radius: 0 0 6px 6px;
-    padding: 8px 0;
-  }
-  .agenda-card .time-mark {
-    font-size: 7px;
-    padding-right: 2px;
-  }
-  .agenda-card .time-block {
-    font-size: 9px;
-    padding: 1px 3px;
-    border-left-width: 2px;
-    border-radius: 3px;
-  }
-  .agenda-card .blk-time {
-    font-size: 7px;
-  }
-  .agenda-card .blk-label {
-    font-size: 8px;
-    margin-top: 0;
-  }
-  .agenda-card .blk-sym {
-    width: 9px; height: 9px;
-    line-height: 9px;
-    font-size: 6px;
-    margin-right: 1px;
-  }
-  .agenda-card .time-block.tight { padding: 0 2px; }
-
   .agenda-allday-block {
     background: var(--studio-bg);
-    border-left: 3px solid var(--studio-color);
-    border-radius: 6px;
-    padding: 4px 6px;
-    font-size: 10px;
-    margin-bottom: 3px;
+    border-left: 4px solid var(--studio-color);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 13px;
+    margin-bottom: 5px;
   }
-  .agenda-allday-block .lbl { font-weight: 600; font-size: 10px; }
-  .agenda-allday-block .meta { font-size: 8px; color: var(--muted); }
+  .agenda-allday-block .lbl { font-weight: 600; }
+  .agenda-allday-block .meta { font-size: 11px; color: var(--muted); }
   .agenda-empty {
     text-align: center;
     padding: 40px 16px;
     color: var(--muted);
     font-size: 13px;
-    flex: 1 1 auto;
-  }
-  @media (min-width: 600px) {
-    .agenda-card {
-      flex: 0 0 calc(50% - 5px);
-      max-width: 460px;
-    }
+    width: 100%;
   }
   .month-nav button {
     background: var(--card);
@@ -1525,7 +1481,9 @@
   <div class="cal-grid" id="cal-grid"></div>
   <div class="agenda-wrap" id="agenda-wrap" hidden>
     <button class="agenda-nav-btn prev" id="agenda-prev" aria-label="前の予定">◀</button>
-    <div class="agenda-carousel" id="agenda-carousel"></div>
+    <div class="agenda-viewport" id="agenda-viewport">
+      <div class="agenda-track" id="agenda-carousel"></div>
+    </div>
     <button class="agenda-nav-btn next" id="agenda-next" aria-label="次の予定">▶</button>
   </div>
 </main>
@@ -2069,8 +2027,9 @@ function isAllDay(it) {
 
 let CURRENT_VIEW = 'month';
 let ALL_MONTHS_CACHE = null;
-let AGENDA_SCROLL_BOUND = false;
-let AGENDA_SCROLL_DEBOUNCE = null;
+let AGENDA_CURRENT_IDX = 0;
+let AGENDA_TOTAL = 0;
+let AGENDA_BOUND = false;
 
 function invalidateAllMonthsCache() {
   ALL_MONTHS_CACHE = null;
@@ -2140,13 +2099,15 @@ function render() {
 }
 
 async function renderAgenda() {
-  const root = document.getElementById('agenda-carousel');
-  root.innerHTML = '<div class="agenda-empty">読み込み中…</div>';
+  const track = document.getElementById('agenda-carousel');
+  track.innerHTML = '<div class="agenda-empty">読み込み中…</div>';
 
   const monthsData = await loadAllMonths();
-  root.innerHTML = '';
+  track.innerHTML = '';
+  // Reset any leftover transform
+  track.style.transform = '';
+  track.style.transition = '';
 
-  // Group all events across all months by date
   const byDate = new Map();
   for (const { data } of monthsData) {
     for (const ev of data.events) {
@@ -2164,70 +2125,75 @@ async function renderAgenda() {
     const date = new Date(y, mo - 1, d);
     const card = buildAgendaCard(date, iso, items);
     card.dataset.iso = iso;
-    root.appendChild(card);
+    track.appendChild(card);
     cardsAdded++;
   }
 
+  AGENDA_TOTAL = cardsAdded;
+
   if (cardsAdded === 0) {
-    root.innerHTML = '<div class="agenda-empty">予定がある日がまだありません</div>';
+    track.innerHTML = '<div class="agenda-empty">予定がある日がまだありません</div>';
     return;
   }
 
-  // Scroll today's card (or nearest future) to center
-  requestAnimationFrame(() => {
-    let target = root.querySelector('.agenda-card.today');
-    if (!target) {
-      const cards = root.querySelectorAll('.agenda-card');
-      for (const c of cards) {
-        if (c.dataset.iso >= TODAY_ISO) { target = c; break; }
-      }
-      if (!target && cards.length > 0) target = cards[cards.length - 1];
-    }
-    if (target) target.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' });
-    syncMonthLabelFromAgenda();
-  });
+  // Find initial card: today or nearest future, else last
+  const cards = [...track.querySelectorAll('.agenda-card')];
+  let initialIdx = cards.findIndex(c => c.dataset.iso === TODAY_ISO);
+  if (initialIdx < 0) initialIdx = cards.findIndex(c => c.dataset.iso >= TODAY_ISO);
+  if (initialIdx < 0) initialIdx = Math.max(0, cards.length - 1);
 
-  // Bind scroll observer once
-  if (!AGENDA_SCROLL_BOUND) {
-    root.addEventListener('scroll', () => {
-      if (AGENDA_SCROLL_DEBOUNCE) clearTimeout(AGENDA_SCROLL_DEBOUNCE);
-      AGENDA_SCROLL_DEBOUNCE = setTimeout(syncMonthLabelFromAgenda, 80);
-    }, { passive: true });
-    AGENDA_SCROLL_BOUND = true;
+  // Defer to next frame so layout is settled
+  requestAnimationFrame(() => agendaSetIndex(initialIdx, false));
+
+  // Bind swipe / resize handlers once
+  if (!AGENDA_BOUND) {
+    bindAgendaPager();
+    AGENDA_BOUND = true;
   }
 }
 
-function syncMonthLabelFromAgenda() {
-  if (CURRENT_VIEW !== 'agenda') return;
-  const root = document.getElementById('agenda-carousel');
-  const rect = root.getBoundingClientRect();
-  const centerX = rect.left + rect.width / 2;
-  const cards = [...root.querySelectorAll('.agenda-card')];
-  let closest = null;
-  let closestIdx = -1;
-  let closestDist = Infinity;
-  cards.forEach((c, i) => {
-    const cr = c.getBoundingClientRect();
-    const cx = cr.left + cr.width / 2;
-    const dist = Math.abs(centerX - cx);
-    if (dist < closestDist) { closestDist = dist; closest = c; closestIdx = i; }
-  });
-  if (closestIdx >= 0) updateAgendaNavButtons(closestIdx, cards.length);
-  if (!closest || !closest.dataset.iso) return;
-  const month = closest.dataset.iso.slice(0, 7);
-  if (month !== CURRENT_MONTH) {
-    CURRENT_MONTH = month;
-    document.getElementById('month-label').textContent = formatMonthLabel(month);
-    document.getElementById('month-meta').textContent = '予定がある日だけ表示中';
+function agendaSetIndex(idx, animate = true) {
+  const track = document.getElementById('agenda-carousel');
+  const viewport = document.getElementById('agenda-viewport');
+  const cards = [...track.querySelectorAll('.agenda-card')];
+  if (cards.length === 0) return;
+  const safe = Math.max(0, Math.min(cards.length - 1, idx));
+  AGENDA_CURRENT_IDX = safe;
+
+  const target = cards[safe];
+  const vpWidth = viewport.getBoundingClientRect().width;
+  const cardWidth = target.getBoundingClientRect().width;
+  // offsetLeft is relative to the track (positioned ancestor)
+  const cardLeft = target.offsetLeft;
+  const translateX = (vpWidth - cardWidth) / 2 - cardLeft;
+
+  track.style.transition = animate ? '' : 'none';
+  track.style.transform = `translateX(${translateX}px)`;
+  if (!animate) {
+    // Force reflow so subsequent transitions work
+    void track.offsetWidth;
+    track.style.transition = '';
   }
+
+  // Update month label + nav buttons
+  const iso = target.dataset.iso;
+  if (iso) {
+    const month = iso.slice(0, 7);
+    if (month !== CURRENT_MONTH) {
+      CURRENT_MONTH = month;
+      document.getElementById('month-label').textContent = formatMonthLabel(month);
+      document.getElementById('month-meta').textContent = '予定がある日だけ表示中';
+    }
+  }
+  updateAgendaNavButtons(safe, cards.length);
 }
 
 function scrollAgendaToMonth(targetMonth) {
-  const root = document.getElementById('agenda-carousel');
-  const cards = root.querySelectorAll('.agenda-card');
-  for (const c of cards) {
-    if (c.dataset.iso && c.dataset.iso.startsWith(targetMonth)) {
-      c.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  const track = document.getElementById('agenda-carousel');
+  const cards = [...track.querySelectorAll('.agenda-card')];
+  for (let i = 0; i < cards.length; i++) {
+    if (cards[i].dataset.iso && cards[i].dataset.iso.startsWith(targetMonth)) {
+      agendaSetIndex(i, true);
       return true;
     }
   }
@@ -2235,23 +2201,11 @@ function scrollAgendaToMonth(targetMonth) {
 }
 
 function scrollAgendaByOne(direction) {
-  const root = document.getElementById('agenda-carousel');
-  const cards = [...root.querySelectorAll('.agenda-card')];
-  if (cards.length === 0) return;
+  agendaSetIndex(AGENDA_CURRENT_IDX + direction, true);
+}
 
-  const rect = root.getBoundingClientRect();
-  const centerX = rect.left + rect.width / 2;
-  let centerIdx = 0;
-  let closestDist = Infinity;
-  cards.forEach((c, i) => {
-    const cr = c.getBoundingClientRect();
-    const cx = cr.left + cr.width / 2;
-    const dist = Math.abs(centerX - cx);
-    if (dist < closestDist) { closestDist = dist; centerIdx = i; }
-  });
-  const targetIdx = Math.max(0, Math.min(cards.length - 1, centerIdx + direction));
-  cards[targetIdx].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-  updateAgendaNavButtons(targetIdx, cards.length);
+function syncMonthLabelFromAgenda() {
+  // No-op: month label is updated inside agendaSetIndex now
 }
 
 function updateAgendaNavButtons(centerIdx, total) {
@@ -2265,66 +2219,111 @@ function updateAgendaNavButtons(centerIdx, total) {
 function bindAgendaNav() {
   document.getElementById('agenda-prev').addEventListener('click', () => scrollAgendaByOne(-1));
   document.getElementById('agenda-next').addEventListener('click', () => scrollAgendaByOne(+1));
-  bindAgendaSwipeLimit();
 }
 
-function currentAgendaCenterIdx() {
-  const root = document.getElementById('agenda-carousel');
-  const cards = [...root.querySelectorAll('.agenda-card')];
-  if (cards.length === 0) return -1;
-  const rect = root.getBoundingClientRect();
-  const centerX = rect.left + rect.width / 2;
-  let idx = 0;
-  let dist = Infinity;
-  cards.forEach((c, i) => {
-    const cr = c.getBoundingClientRect();
-    const cx = cr.left + cr.width / 2;
-    const d = Math.abs(centerX - cx);
-    if (d < dist) { dist = d; idx = i; }
-  });
-  return idx;
-}
+function bindAgendaPager() {
+  const viewport = document.getElementById('agenda-viewport');
+  const track = document.getElementById('agenda-carousel');
 
-let AGENDA_SWIPE_START_IDX = null;
-let AGENDA_SWIPE_SETTLE_TIMER = null;
+  let startX = null;
+  let startY = null;
+  let startTranslate = 0;
+  let dragging = false;
+  let horizontal = false;
+  let baseTransform = 0;
 
-function bindAgendaSwipeLimit() {
-  const root = document.getElementById('agenda-carousel');
+  function getTranslate() {
+    const t = window.getComputedStyle(track).transform;
+    if (!t || t === 'none') return 0;
+    const m = t.match(/matrix.*\((.+)\)/);
+    if (!m) return 0;
+    const parts = m[1].split(',').map(s => parseFloat(s));
+    // For matrix(a,b,c,d,tx,ty) tx is index 4; for matrix3d, tx is index 12
+    return parts.length === 6 ? parts[4] : parts[12];
+  }
 
-  root.addEventListener('touchstart', () => {
-    if (AGENDA_SWIPE_SETTLE_TIMER) {
-      clearTimeout(AGENDA_SWIPE_SETTLE_TIMER);
-      AGENDA_SWIPE_SETTLE_TIMER = null;
+  viewport.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) return;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    baseTransform = getTranslate();
+    dragging = true;
+    horizontal = false;
+    track.classList.add('dragging');
+  }, { passive: true });
+
+  viewport.addEventListener('touchmove', (e) => {
+    if (!dragging) return;
+    const dx = e.touches[0].clientX - startX;
+    const dy = e.touches[0].clientY - startY;
+    if (!horizontal && Math.abs(dx) < Math.abs(dy)) {
+      // Vertical scroll wins; cancel horizontal drag
+      dragging = false;
+      track.classList.remove('dragging');
+      track.style.transform = `translateX(${baseTransform}px)`;
+      return;
     }
-    AGENDA_SWIPE_START_IDX = currentAgendaCenterIdx();
+    if (Math.abs(dx) > 6) horizontal = true;
+    if (horizontal) {
+      track.style.transform = `translateX(${baseTransform + dx}px)`;
+    }
   }, { passive: true });
 
-  root.addEventListener('touchend', () => {
-    if (AGENDA_SWIPE_START_IDX == null) return;
-    const startIdx = AGENDA_SWIPE_START_IDX;
-    AGENDA_SWIPE_START_IDX = null;
+  viewport.addEventListener('touchend', (e) => {
+    if (!dragging) return;
+    dragging = false;
+    track.classList.remove('dragging');
+    if (!horizontal) {
+      // No horizontal swipe → just snap back
+      agendaSetIndex(AGENDA_CURRENT_IDX, true);
+      return;
+    }
+    const dx = e.changedTouches[0].clientX - startX;
+    const threshold = 40; // px to commit a page turn
+    if (dx <= -threshold) {
+      agendaSetIndex(AGENDA_CURRENT_IDX + 1, true);
+    } else if (dx >= threshold) {
+      agendaSetIndex(AGENDA_CURRENT_IDX - 1, true);
+    } else {
+      // Below threshold → spring back
+      agendaSetIndex(AGENDA_CURRENT_IDX, true);
+    }
+  });
 
-    // Wait briefly for iOS inertial scroll to settle, then snap to ±1
-    AGENDA_SWIPE_SETTLE_TIMER = setTimeout(() => {
-      const currentIdx = currentAgendaCenterIdx();
-      const cards = [...root.querySelectorAll('.agenda-card')];
-      if (cards.length === 0) return;
-      let targetIdx;
-      if (currentIdx > startIdx) {
-        targetIdx = Math.min(cards.length - 1, startIdx + 1);
-      } else if (currentIdx < startIdx) {
-        targetIdx = Math.max(0, startIdx - 1);
-      } else {
-        targetIdx = startIdx;
-      }
-      if (targetIdx !== currentIdx) {
-        cards[targetIdx].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-      }
-    }, 260);
-  }, { passive: true });
+  viewport.addEventListener('touchcancel', () => {
+    if (!dragging) return;
+    dragging = false;
+    track.classList.remove('dragging');
+    agendaSetIndex(AGENDA_CURRENT_IDX, true);
+  });
 
-  root.addEventListener('touchcancel', () => {
-    AGENDA_SWIPE_START_IDX = null;
+  // Mouse drag (PC) — optional, falls back to ◀ ▶
+  let mouseDown = false;
+  let mouseStartX = 0;
+  viewport.addEventListener('mousedown', (e) => {
+    mouseDown = true;
+    mouseStartX = e.clientX;
+    baseTransform = getTranslate();
+    track.classList.add('dragging');
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (!mouseDown) return;
+    const dx = e.clientX - mouseStartX;
+    track.style.transform = `translateX(${baseTransform + dx}px)`;
+  });
+  window.addEventListener('mouseup', (e) => {
+    if (!mouseDown) return;
+    mouseDown = false;
+    track.classList.remove('dragging');
+    const dx = e.clientX - mouseStartX;
+    if (dx <= -40) agendaSetIndex(AGENDA_CURRENT_IDX + 1, true);
+    else if (dx >= 40) agendaSetIndex(AGENDA_CURRENT_IDX - 1, true);
+    else agendaSetIndex(AGENDA_CURRENT_IDX, true);
+  });
+
+  // Re-center on resize
+  window.addEventListener('resize', () => {
+    if (CURRENT_VIEW === 'agenda') agendaSetIndex(AGENDA_CURRENT_IDX, false);
   });
 }
 
