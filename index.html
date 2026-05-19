@@ -153,29 +153,25 @@
     overflow: hidden;
     width: 100%;
     position: relative;
-    padding: 10px 12px 14px;
+    padding: 10px 0 14px;
+    touch-action: pan-y;
   }
   .agenda-track {
-    position: relative;
+    display: flex;
+    gap: 10px;
+    padding: 0 12px;
+    transition: transform 0.28s cubic-bezier(0.2, 0.7, 0.3, 1);
+    will-change: transform;
   }
+  .agenda-track.dragging { transition: none; }
   .agenda-card {
-    display: none;
-  }
-  .agenda-card.active {
-    display: block;
-    animation: agenda-slide-up 0.28s cubic-bezier(0.2, 0.7, 0.3, 1);
-  }
-  @keyframes agenda-slide-up {
-    from { transform: translateY(24px); opacity: 0; }
-    to   { transform: translateY(0);    opacity: 1; }
-  }
-  .agenda-card {
-    max-width: 720px;
-    margin: 0 auto;
+    flex: 0 0 calc(50% - 5px);
+    max-width: 420px;
+    min-width: 200px;
     background: var(--card);
     border: 1.5px solid var(--line);
     border-radius: 14px;
-    padding: 12px 14px 14px;
+    padding: 10px 12px 12px;
     box-shadow: 0 2px 12px rgba(232, 138, 165, 0.08);
   }
   .agenda-card.today {
@@ -192,12 +188,47 @@
     margin-bottom: 6px;
   }
   .agenda-num {
-    font-size: 24px;
+    font-size: 18px;
     font-weight: 700;
     color: var(--accent-deep);
     font-variant-numeric: tabular-nums;
     font-family: 'Quicksand', 'M PLUS Rounded 1c', sans-serif;
   }
+  /* Compact time grid inside agenda card */
+  .agenda-card .time-sides-head {
+    font-size: 8px;
+    padding: 3px 0;
+    border-radius: 6px 6px 0 0;
+  }
+  .agenda-card .time-grid {
+    grid-template-columns: 26px 1fr 1fr;
+    border-radius: 0 0 6px 6px;
+    padding: 8px 0;
+  }
+  .agenda-card .time-mark { font-size: 7px; padding-right: 2px; }
+  .agenda-card .time-block {
+    font-size: 9px;
+    padding: 1px 3px;
+    border-left-width: 2px;
+    border-radius: 3px;
+  }
+  .agenda-card .blk-time { font-size: 7px; }
+  .agenda-card .blk-label { font-size: 8px; margin-top: 0; }
+  .agenda-card .blk-sym {
+    width: 9px; height: 9px;
+    line-height: 9px;
+    font-size: 6px;
+    margin-right: 1px;
+  }
+  .agenda-card .time-block.tight { padding: 0 2px; }
+  .agenda-card .agenda-allday-block {
+    font-size: 10px;
+    padding: 4px 6px;
+    border-radius: 6px;
+    margin-bottom: 3px;
+  }
+  .agenda-card .agenda-allday-block .lbl { font-size: 10px; }
+  .agenda-card .agenda-allday-block .meta { font-size: 8px; }
   .agenda-head.sun .agenda-num { color: var(--sun); }
   .agenda-head.sat .agenda-num { color: var(--sat); }
   .agenda-wd { font-size: 13px; color: var(--muted); }
@@ -2111,6 +2142,7 @@ async function renderAgenda() {
 
   const monthsData = await loadAllMonths();
   track.innerHTML = '';
+  track.style.transform = '';
 
   const byDate = new Map();
   for (const { data } of monthsData) {
@@ -2146,29 +2178,37 @@ async function renderAgenda() {
   if (initialIdx < 0) initialIdx = cards.findIndex(c => c.dataset.iso >= TODAY_ISO);
   if (initialIdx < 0) initialIdx = Math.max(0, cards.length - 1);
 
-  agendaSetIndex(initialIdx, true);
+  requestAnimationFrame(() => agendaSetIndex(initialIdx, false));
+
+  if (!AGENDA_BOUND) {
+    bindAgendaPager();
+    AGENDA_BOUND = true;
+  }
 }
 
-function agendaSetIndex(idx) {
+function agendaSetIndex(idx, animate = true) {
   const track = document.getElementById('agenda-carousel');
+  const viewport = document.getElementById('agenda-viewport');
   const cards = [...track.querySelectorAll('.agenda-card')];
   if (cards.length === 0) return;
   const safe = Math.max(0, Math.min(cards.length - 1, idx));
   AGENDA_CURRENT_IDX = safe;
 
-  // Only the target card is .active; others hidden via CSS (display: none)
-  cards.forEach((c, i) => {
-    if (i === safe) {
-      // Restart animation by removing then re-adding the class
-      c.classList.remove('active');
-      void c.offsetWidth; // force reflow
-      c.classList.add('active');
-    } else {
-      c.classList.remove('active');
-    }
-  });
-
   const target = cards[safe];
+  const vpWidth = viewport.getBoundingClientRect().width;
+  const cardWidth = target.getBoundingClientRect().width;
+  const cardLeft = target.offsetLeft;
+  const translateX = (vpWidth - cardWidth) / 2 - cardLeft;
+
+  if (!animate) {
+    track.style.transition = 'none';
+    track.style.transform = `translateX(${translateX}px)`;
+    void track.offsetWidth;
+    track.style.transition = '';
+  } else {
+    track.style.transform = `translateX(${translateX}px)`;
+  }
+
   const iso = target.dataset.iso;
   if (iso) {
     const month = iso.slice(0, 7);
@@ -2179,6 +2219,104 @@ function agendaSetIndex(idx) {
     }
   }
   updateAgendaNavButtons(safe, cards.length);
+}
+
+function bindAgendaPager() {
+  const viewport = document.getElementById('agenda-viewport');
+  const track = document.getElementById('agenda-carousel');
+
+  let startX = null;
+  let startY = null;
+  let baseTransform = 0;
+  let dragging = false;
+  let horizontal = false;
+
+  function getTranslate() {
+    const t = window.getComputedStyle(track).transform;
+    if (!t || t === 'none') return 0;
+    const m = t.match(/matrix.*\((.+)\)/);
+    if (!m) return 0;
+    const parts = m[1].split(',').map(s => parseFloat(s));
+    return parts.length === 6 ? parts[4] : parts[12];
+  }
+
+  viewport.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) return;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    baseTransform = getTranslate();
+    dragging = true;
+    horizontal = false;
+    track.classList.add('dragging');
+  }, { passive: true });
+
+  viewport.addEventListener('touchmove', (e) => {
+    if (!dragging) return;
+    const dx = e.touches[0].clientX - startX;
+    const dy = e.touches[0].clientY - startY;
+    if (!horizontal && Math.abs(dx) < Math.abs(dy)) {
+      // Vertical wins → cancel drag, let page scroll
+      dragging = false;
+      track.classList.remove('dragging');
+      track.style.transform = `translateX(${baseTransform}px)`;
+      return;
+    }
+    if (Math.abs(dx) > 6) horizontal = true;
+    if (horizontal) {
+      track.style.transform = `translateX(${baseTransform + dx}px)`;
+    }
+  }, { passive: true });
+
+  viewport.addEventListener('touchend', (e) => {
+    if (!dragging) return;
+    dragging = false;
+    track.classList.remove('dragging');
+    if (!horizontal) {
+      agendaSetIndex(AGENDA_CURRENT_IDX, true);
+      return;
+    }
+    const dx = e.changedTouches[0].clientX - startX;
+    const threshold = 40;
+    if (dx <= -threshold) agendaSetIndex(AGENDA_CURRENT_IDX + 1, true);
+    else if (dx >= threshold) agendaSetIndex(AGENDA_CURRENT_IDX - 1, true);
+    else agendaSetIndex(AGENDA_CURRENT_IDX, true);
+  });
+
+  viewport.addEventListener('touchcancel', () => {
+    if (!dragging) return;
+    dragging = false;
+    track.classList.remove('dragging');
+    agendaSetIndex(AGENDA_CURRENT_IDX, true);
+  });
+
+  // Mouse drag (PC)
+  let mouseDown = false;
+  let mouseStartX = 0;
+  viewport.addEventListener('mousedown', (e) => {
+    mouseDown = true;
+    mouseStartX = e.clientX;
+    baseTransform = getTranslate();
+    track.classList.add('dragging');
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (!mouseDown) return;
+    const dx = e.clientX - mouseStartX;
+    track.style.transform = `translateX(${baseTransform + dx}px)`;
+  });
+  window.addEventListener('mouseup', (e) => {
+    if (!mouseDown) return;
+    mouseDown = false;
+    track.classList.remove('dragging');
+    const dx = e.clientX - mouseStartX;
+    if (dx <= -40) agendaSetIndex(AGENDA_CURRENT_IDX + 1, true);
+    else if (dx >= 40) agendaSetIndex(AGENDA_CURRENT_IDX - 1, true);
+    else agendaSetIndex(AGENDA_CURRENT_IDX, true);
+  });
+
+  // Re-center on resize
+  window.addEventListener('resize', () => {
+    if (CURRENT_VIEW === 'agenda') agendaSetIndex(AGENDA_CURRENT_IDX, false);
+  });
 }
 
 function scrollAgendaToMonth(targetMonth) {
@@ -2262,8 +2400,7 @@ function buildAgendaCard(date, iso, items) {
 
   if (inRange.length > 0) {
     // Compact 2-column time grid (川越/合同/みよしの | 所沢)
-    // interactive: true → タップで予定追加可能 (key holders)
-    const grid = buildTimeGrid(inRange, date, { hourHeight: 22, interactive: true });
+    const grid = buildTimeGrid(inRange, date, { hourHeight: 24, interactive: true });
     card.appendChild(grid);
     // Tap on a block opens the editor (key holders only); else day sheet
     grid.querySelectorAll('.time-block').forEach(block => {
