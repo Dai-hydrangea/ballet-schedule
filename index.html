@@ -165,18 +165,17 @@
     border-radius: 3px;
   }
   .agenda-card {
-    flex: 0 0 86vw;
-    max-width: 420px;
+    flex: 0 0 calc(50% - 5px);
+    max-width: 360px;
+    min-width: 200px;
     scroll-snap-align: center;
     background: var(--card);
     border: 1.5px solid var(--line);
     border-radius: 14px;
-    padding: 12px 14px;
+    padding: 10px 10px 12px;
     box-shadow: 0 2px 12px rgba(232, 138, 165, 0.08);
-    cursor: pointer;
     transition: transform 0.12s;
   }
-  .agenda-card:active { transform: scale(0.98); }
   .agenda-card.today {
     border-color: var(--accent);
     border-width: 2px;
@@ -185,13 +184,13 @@
   .agenda-head {
     display: flex;
     align-items: baseline;
-    gap: 6px;
-    padding-bottom: 8px;
+    gap: 4px;
+    padding-bottom: 6px;
     border-bottom: 1.5px solid var(--line-soft);
-    margin-bottom: 8px;
+    margin-bottom: 6px;
   }
   .agenda-num {
-    font-size: 22px;
+    font-size: 18px;
     font-weight: 700;
     color: var(--accent-deep);
     font-variant-numeric: tabular-nums;
@@ -199,57 +198,80 @@
   }
   .agenda-head.sun .agenda-num { color: var(--sun); }
   .agenda-head.sat .agenda-num { color: var(--sat); }
-  .agenda-wd { font-size: 13px; color: var(--muted); }
+  .agenda-wd { font-size: 11px; color: var(--muted); }
   .agenda-today-mark {
-    font-size: 10px;
+    font-size: 9px;
     color: var(--accent);
     font-weight: 600;
-    margin-left: 4px;
+    margin-left: 2px;
   }
   .agenda-count {
     margin-left: auto;
-    font-size: 10px;
+    font-size: 9px;
     color: var(--accent-deep);
     background: var(--accent-soft);
     border-radius: 999px;
-    padding: 2px 8px;
+    padding: 1px 6px;
     font-weight: 600;
   }
-  .agenda-event-list { display: flex; flex-direction: column; gap: 4px; }
-  .agenda-event {
+  /* Compact time grid inside agenda card */
+  .agenda-card .time-sides-head {
+    font-size: 8px;
+    padding: 3px 0 3px;
+    border-radius: 6px 6px 0 0;
+  }
+  .agenda-card .time-grid {
+    grid-template-columns: 26px 1fr 1fr;
+    border-radius: 0 0 6px 6px;
+    padding: 8px 0;
+  }
+  .agenda-card .time-mark {
+    font-size: 7px;
+    padding-right: 2px;
+  }
+  .agenda-card .time-block {
+    font-size: 9px;
+    padding: 1px 3px;
+    border-left-width: 2px;
+    border-radius: 3px;
+  }
+  .agenda-card .blk-time {
+    font-size: 7px;
+  }
+  .agenda-card .blk-label {
+    font-size: 8px;
+    margin-top: 0;
+  }
+  .agenda-card .blk-sym {
+    width: 9px; height: 9px;
+    line-height: 9px;
+    font-size: 6px;
+    margin-right: 1px;
+  }
+  .agenda-card .time-block.tight { padding: 0 2px; }
+
+  .agenda-allday-block {
     background: var(--studio-bg);
-    border-left: 4px solid var(--studio-color);
-    border-radius: 8px;
-    padding: 6px 10px;
-    display: grid;
-    grid-template-columns: 80px 1fr;
-    gap: 8px;
-    align-items: center;
-  }
-  .ae-time {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--accent-deep);
-    font-variant-numeric: tabular-nums;
-  }
-  .ae-label { font-size: 13px; font-weight: 500; color: var(--fg); }
-  .ae-meta { font-size: 10px; color: var(--muted); margin-top: 2px; }
-  .agenda-note {
-    margin-top: 6px;
-    font-size: 10px;
-    color: var(--muted);
-    background: #fafaf9;
+    border-left: 3px solid var(--studio-color);
     border-radius: 6px;
-    padding: 4px 8px;
+    padding: 4px 6px;
+    font-size: 10px;
+    margin-bottom: 3px;
   }
+  .agenda-allday-block .lbl { font-weight: 600; font-size: 10px; }
+  .agenda-allday-block .meta { font-size: 8px; color: var(--muted); }
   .agenda-empty {
     text-align: center;
     padding: 40px 16px;
     color: var(--muted);
     font-size: 13px;
+    flex: 1 1 auto;
   }
   @media (min-width: 600px) {
-    .agenda-card { flex: 0 0 60vw; max-width: 360px; }
+    .agenda-card {
+      flex: 0 0 calc(50% - 5px);
+      max-width: 460px;
+    }
   }
   .month-nav button {
     background: var(--card);
@@ -2242,39 +2264,59 @@ function buildAgendaCard(date, iso, items) {
     <span class="agenda-num">${date.getMonth()+1}/${date.getDate()}</span>
     <span class="agenda-wd">(${WEEKDAY_JP[wd]})</span>
     ${iso === TODAY_ISO ? '<span class="agenda-today-mark">今日</span>' : ''}
-    <span class="agenda-count">${items.length} 件</span>
+    <span class="agenda-count">${items.length}</span>
   `;
+  head.addEventListener('click', () => openDaySheet(date));
+  head.style.cursor = 'pointer';
   card.appendChild(head);
 
-  const list = document.createElement('div');
-  list.className = 'agenda-event-list';
-  items.sort((a,b) => (a.start||'').localeCompare(b.start||''));
-  for (const ev of items) {
-    const studio = META.studios[ev.studio];
-    const row = document.createElement('div');
-    row.className = 'agenda-event';
-    row.style.setProperty('--studio-color', studio.color);
-    row.style.setProperty('--studio-bg', studio.bg);
-    row.innerHTML = `
-      <div class="ae-time">${ev.start}–${ev.end}</div>
-      <div>
-        <div class="ae-label">${escapeHtml(ev.label)}</div>
-        <div class="ae-meta">${escapeHtml(studio.name)}${ev.target ? ' · ' + escapeHtml(ev.target) : ''}</div>
-      </div>
+  // Separate all-day from in-range events
+  const inRange = [];
+  const outOfRange = [];
+  for (const it of items) {
+    const s = parseTimeMin(it.start);
+    const e = parseTimeMin(it.end);
+    if (s == null || e == null || e <= TIME_START_MIN || s >= TIME_END_MIN || isAllDay(it)) {
+      outOfRange.push(it);
+    } else {
+      inRange.push(it);
+    }
+  }
+
+  for (const it of outOfRange) {
+    const studio = META.studios[it.studio];
+    const div = document.createElement('div');
+    div.className = 'agenda-allday-block';
+    div.style.setProperty('--studio-color', studio.color);
+    div.style.setProperty('--studio-bg', studio.bg);
+    div.innerHTML = `
+      <div class="lbl">${escapeHtml(it.label)}</div>
+      <div class="meta">${escapeHtml(studio.name)}${it.note ? ' · ' + escapeHtml(it.note) : ''}</div>
     `;
-    list.appendChild(row);
-  }
-  card.appendChild(list);
-
-  const withNotes = items.filter(it => it.note);
-  if (withNotes.length > 0) {
-    const note = document.createElement('div');
-    note.className = 'agenda-note';
-    note.textContent = withNotes.map(it => `※ ${it.label}: ${it.note}`).join('  /  ');
-    card.appendChild(note);
+    card.appendChild(div);
   }
 
-  card.addEventListener('click', () => openDaySheet(date));
+  if (inRange.length > 0) {
+    // Compact 2-column time grid (川越/合同/みよしの | 所沢)
+    const grid = buildTimeGrid(inRange, date, { hourHeight: 22, interactive: false });
+    card.appendChild(grid);
+    // Tap on a block opens the editor (key holders only); else day sheet
+    grid.querySelectorAll('.time-block').forEach(block => {
+      const key = block.dataset.eventKey;
+      const ev = inRange.find(it => eventKey(it) === key);
+      if (!ev) return;
+      block.style.cursor = 'pointer';
+      block.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (getUploadKey() && API_BASE_URL) {
+          openAddSheet({ editingEvent: ev });
+        } else {
+          openDaySheet(date);
+        }
+      });
+    });
+  }
+
   return card;
 }
 
@@ -2495,7 +2537,9 @@ function assignSubColumns(items) {
   return items;
 }
 
-function buildTimeGrid(items, date) {
+function buildTimeGrid(items, date, opts = {}) {
+  const HH = opts.hourHeight || HOUR_HEIGHT;
+  const interactive = opts.interactive !== false; // default true
   items.sort((a,b) => parseTimeMin(a.start) - parseTimeMin(b.start));
   const leftItems = items.filter(it => sideOf(it.studio) === 'L');
   const rightItems = items.filter(it => sideOf(it.studio) === 'R');
@@ -2503,7 +2547,7 @@ function buildTimeGrid(items, date) {
   assignSubColumns(rightItems);
 
   const totalHours = TIME_END_HOUR - TIME_START_HOUR;
-  const totalHeight = totalHours * HOUR_HEIGHT;
+  const totalHeight = totalHours * HH;
   const wrap = document.createDocumentFragment();
 
   const sideHead = document.createElement('div');
@@ -2524,14 +2568,14 @@ function buildTimeGrid(items, date) {
   for (let h = TIME_START_HOUR; h <= TIME_END_HOUR; h++) {
     const mark = document.createElement('div');
     mark.className = 'time-mark';
-    mark.style.top = ((h - TIME_START_HOUR) * HOUR_HEIGHT) + 'px';
+    mark.style.top = ((h - TIME_START_HOUR) * HH) + 'px';
     mark.textContent = h + ':00';
     axis.appendChild(mark);
   }
   grid.appendChild(axis);
 
-  grid.appendChild(buildSideContent(leftItems, totalHours, 'L', date));
-  grid.appendChild(buildSideContent(rightItems, totalHours, 'R', date));
+  grid.appendChild(buildSideContent(leftItems, totalHours, 'L', date, HH, interactive));
+  grid.appendChild(buildSideContent(rightItems, totalHours, 'R', date, HH, interactive));
 
   wrap.appendChild(grid);
 
@@ -2540,15 +2584,16 @@ function buildTimeGrid(items, date) {
   return container;
 }
 
-function buildSideContent(items, totalHours, side, date) {
+function buildSideContent(items, totalHours, side, date, hourHeight, interactive) {
+  const HH = hourHeight || HOUR_HEIGHT;
   const content = document.createElement('div');
   content.className = 'time-content side-' + side;
-  const hasEditPermission = !!(getUploadKey() && API_BASE_URL);
+  const hasEditPermission = interactive && !!(getUploadKey() && API_BASE_URL);
 
   for (let h = 1; h < totalHours; h++) {
     const line = document.createElement('div');
     line.className = 'grid-line';
-    line.style.top = (h * HOUR_HEIGHT) + 'px';
+    line.style.top = (h * HH) + 'px';
     content.appendChild(line);
   }
 
@@ -2556,11 +2601,10 @@ function buildSideContent(items, totalHours, side, date) {
   if (hasEditPermission && date) {
     content.style.cursor = 'pointer';
     content.addEventListener('click', (e) => {
-      // 既存ブロックタップは別ハンドラで処理されるため、 ここでは空きエリアのみ
       if (e.target.closest('.time-block')) return;
       const rect = content.getBoundingClientRect();
       const y = e.clientY - rect.top;
-      const minutesFromStart = Math.max(0, Math.round((y / HOUR_HEIGHT) * 60 / 15) * 15);
+      const minutesFromStart = Math.max(0, Math.round((y / HH) * 60 / 15) * 15);
       const startMin = TIME_START_MIN + minutesFromStart;
       const sh = Math.floor(startMin / 60);
       const sm = startMin % 60;
@@ -2581,8 +2625,8 @@ function buildSideContent(items, totalHours, side, date) {
     const type = META.types[it.type];
     const startMin = Math.max(parseTimeMin(it.start), TIME_START_MIN);
     const endMin = Math.min(parseTimeMin(it.end), TIME_END_MIN);
-    const top = ((startMin - TIME_START_MIN) / 60) * HOUR_HEIGHT;
-    const height = Math.max(((endMin - startMin) / 60) * HOUR_HEIGHT - 1, 14);
+    const top = ((startMin - TIME_START_MIN) / 60) * HH;
+    const height = Math.max(((endMin - startMin) / 60) * HH - 1, 14);
     const subWidth = 100 / it._subMax;
     const leftPct = it._sub * subWidth;
 
@@ -2595,6 +2639,7 @@ function buildSideContent(items, totalHours, side, date) {
     block.style.left = `calc(${leftPct}% + 2px)`;
     block.style.width = `calc(${subWidth}% - 4px)`;
     block.style.zIndex = String(5 + it._sub);
+    block.dataset.eventKey = `${it.date}|${it.start}|${it.end}|${it.label}|${it.studio}`;
     block.innerHTML = `
       <div class="blk-time"><span class="blk-sym">${type.symbol}</span>${it.start}–${it.end}</div>
       <div class="blk-label">${escapeHtml(it.label)}</div>
