@@ -2315,7 +2315,8 @@ function buildAgendaCard(date, iso, items) {
 
   if (inRange.length > 0) {
     // Compact 2-column time grid (川越/合同/みよしの | 所沢)
-    const grid = buildTimeGrid(inRange, date, { hourHeight: 22, interactive: false });
+    // interactive: true → タップで予定追加可能 (key holders)
+    const grid = buildTimeGrid(inRange, date, { hourHeight: 22, interactive: true });
     card.appendChild(grid);
     // Tap on a block opens the editor (key holders only); else day sheet
     grid.querySelectorAll('.time-block').forEach(block => {
@@ -2617,7 +2618,7 @@ function buildSideContent(items, totalHours, side, date, hourHeight, interactive
   // 空きエリアタップ → 新規追加 (権限ありの場合)
   if (hasEditPermission && date) {
     content.style.cursor = 'pointer';
-    content.addEventListener('click', (e) => {
+    content.addEventListener('click', async (e) => {
       if (e.target.closest('.time-block')) return;
       const rect = content.getBoundingClientRect();
       const y = e.clientY - rect.top;
@@ -2627,9 +2628,16 @@ function buildSideContent(items, totalHours, side, date, hourHeight, interactive
       const sm = startMin % 60;
       const startStr = `${String(sh).padStart(2,'0')}:${String(sm).padStart(2,'0')}`;
       const defaultStudio = side === 'R' ? 'tokorozawa' : 'kawagoe';
+      const dateIso = isoLocal(date);
+      const targetMonth = dateIso.slice(0, 7);
       closeSheet();
+      // Agenda card may belong to a different month than CURRENT_MONTH;
+      // switch first so the add modal's date constraints match.
+      if (targetMonth !== CURRENT_MONTH) {
+        await loadMonth(targetMonth);
+      }
       openAddSheet({
-        date: isoLocal(date),
+        date: dateIso,
         start: startStr,
         end: addMinutes(startStr, 60),
         defaultStudio,
