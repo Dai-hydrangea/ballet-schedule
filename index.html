@@ -153,22 +153,25 @@
     overflow: hidden;
     width: 100%;
     position: relative;
-    padding: 10px 0 14px;
-    touch-action: pan-y;  /* allow vertical page scroll, no horizontal native scroll */
+    padding: 10px 12px 14px;
   }
   .agenda-track {
-    display: flex;
-    gap: 10px;
-    transition: transform 0.28s cubic-bezier(0.2, 0.7, 0.3, 1);
-    will-change: transform;
-    padding: 0 12px;
-  }
-  .agenda-track.dragging {
-    transition: none;
+    position: relative;
   }
   .agenda-card {
-    flex: 0 0 calc(100% - 24px);
+    display: none;
+  }
+  .agenda-card.active {
+    display: block;
+    animation: agenda-slide-up 0.28s cubic-bezier(0.2, 0.7, 0.3, 1);
+  }
+  @keyframes agenda-slide-up {
+    from { transform: translateY(24px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+  .agenda-card {
     max-width: 720px;
+    margin: 0 auto;
     background: var(--card);
     border: 1.5px solid var(--line);
     border-radius: 14px;
@@ -2104,9 +2107,6 @@ async function renderAgenda() {
 
   const monthsData = await loadAllMonths();
   track.innerHTML = '';
-  // Reset any leftover transform
-  track.style.transform = '';
-  track.style.transition = '';
 
   const byDate = new Map();
   for (const { data } of monthsData) {
@@ -2142,40 +2142,29 @@ async function renderAgenda() {
   if (initialIdx < 0) initialIdx = cards.findIndex(c => c.dataset.iso >= TODAY_ISO);
   if (initialIdx < 0) initialIdx = Math.max(0, cards.length - 1);
 
-  // Defer to next frame so layout is settled
-  requestAnimationFrame(() => agendaSetIndex(initialIdx, false));
-
-  // Bind swipe / resize handlers once
-  if (!AGENDA_BOUND) {
-    bindAgendaPager();
-    AGENDA_BOUND = true;
-  }
+  agendaSetIndex(initialIdx, true);
 }
 
-function agendaSetIndex(idx, animate = true) {
+function agendaSetIndex(idx) {
   const track = document.getElementById('agenda-carousel');
-  const viewport = document.getElementById('agenda-viewport');
   const cards = [...track.querySelectorAll('.agenda-card')];
   if (cards.length === 0) return;
   const safe = Math.max(0, Math.min(cards.length - 1, idx));
   AGENDA_CURRENT_IDX = safe;
 
+  // Only the target card is .active; others hidden via CSS (display: none)
+  cards.forEach((c, i) => {
+    if (i === safe) {
+      // Restart animation by removing then re-adding the class
+      c.classList.remove('active');
+      void c.offsetWidth; // force reflow
+      c.classList.add('active');
+    } else {
+      c.classList.remove('active');
+    }
+  });
+
   const target = cards[safe];
-  const vpWidth = viewport.getBoundingClientRect().width;
-  const cardWidth = target.getBoundingClientRect().width;
-  // offsetLeft is relative to the track (positioned ancestor)
-  const cardLeft = target.offsetLeft;
-  const translateX = (vpWidth - cardWidth) / 2 - cardLeft;
-
-  track.style.transition = animate ? '' : 'none';
-  track.style.transform = `translateX(${translateX}px)`;
-  if (!animate) {
-    // Force reflow so subsequent transitions work
-    void track.offsetWidth;
-    track.style.transition = '';
-  }
-
-  // Update month label + nav buttons
   const iso = target.dataset.iso;
   if (iso) {
     const month = iso.slice(0, 7);
@@ -2193,7 +2182,7 @@ function scrollAgendaToMonth(targetMonth) {
   const cards = [...track.querySelectorAll('.agenda-card')];
   for (let i = 0; i < cards.length; i++) {
     if (cards[i].dataset.iso && cards[i].dataset.iso.startsWith(targetMonth)) {
-      agendaSetIndex(i, true);
+      agendaSetIndex(i);
       return true;
     }
   }
@@ -2201,7 +2190,7 @@ function scrollAgendaToMonth(targetMonth) {
 }
 
 function scrollAgendaByOne(direction) {
-  agendaSetIndex(AGENDA_CURRENT_IDX + direction, true);
+  agendaSetIndex(AGENDA_CURRENT_IDX + direction);
 }
 
 function syncMonthLabelFromAgenda() {
@@ -2219,112 +2208,6 @@ function updateAgendaNavButtons(centerIdx, total) {
 function bindAgendaNav() {
   document.getElementById('agenda-prev').addEventListener('click', () => scrollAgendaByOne(-1));
   document.getElementById('agenda-next').addEventListener('click', () => scrollAgendaByOne(+1));
-}
-
-function bindAgendaPager() {
-  const viewport = document.getElementById('agenda-viewport');
-  const track = document.getElementById('agenda-carousel');
-
-  let startX = null;
-  let startY = null;
-  let startTranslate = 0;
-  let dragging = false;
-  let horizontal = false;
-  let baseTransform = 0;
-
-  function getTranslate() {
-    const t = window.getComputedStyle(track).transform;
-    if (!t || t === 'none') return 0;
-    const m = t.match(/matrix.*\((.+)\)/);
-    if (!m) return 0;
-    const parts = m[1].split(',').map(s => parseFloat(s));
-    // For matrix(a,b,c,d,tx,ty) tx is index 4; for matrix3d, tx is index 12
-    return parts.length === 6 ? parts[4] : parts[12];
-  }
-
-  viewport.addEventListener('touchstart', (e) => {
-    if (e.touches.length !== 1) return;
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-    baseTransform = getTranslate();
-    dragging = true;
-    horizontal = false;
-    track.classList.add('dragging');
-  }, { passive: true });
-
-  viewport.addEventListener('touchmove', (e) => {
-    if (!dragging) return;
-    const dx = e.touches[0].clientX - startX;
-    const dy = e.touches[0].clientY - startY;
-    if (!horizontal && Math.abs(dx) < Math.abs(dy)) {
-      // Vertical scroll wins; cancel horizontal drag
-      dragging = false;
-      track.classList.remove('dragging');
-      track.style.transform = `translateX(${baseTransform}px)`;
-      return;
-    }
-    if (Math.abs(dx) > 6) horizontal = true;
-    if (horizontal) {
-      track.style.transform = `translateX(${baseTransform + dx}px)`;
-    }
-  }, { passive: true });
-
-  viewport.addEventListener('touchend', (e) => {
-    if (!dragging) return;
-    dragging = false;
-    track.classList.remove('dragging');
-    if (!horizontal) {
-      // No horizontal swipe → just snap back
-      agendaSetIndex(AGENDA_CURRENT_IDX, true);
-      return;
-    }
-    const dx = e.changedTouches[0].clientX - startX;
-    const threshold = 40; // px to commit a page turn
-    if (dx <= -threshold) {
-      agendaSetIndex(AGENDA_CURRENT_IDX + 1, true);
-    } else if (dx >= threshold) {
-      agendaSetIndex(AGENDA_CURRENT_IDX - 1, true);
-    } else {
-      // Below threshold → spring back
-      agendaSetIndex(AGENDA_CURRENT_IDX, true);
-    }
-  });
-
-  viewport.addEventListener('touchcancel', () => {
-    if (!dragging) return;
-    dragging = false;
-    track.classList.remove('dragging');
-    agendaSetIndex(AGENDA_CURRENT_IDX, true);
-  });
-
-  // Mouse drag (PC) — optional, falls back to ◀ ▶
-  let mouseDown = false;
-  let mouseStartX = 0;
-  viewport.addEventListener('mousedown', (e) => {
-    mouseDown = true;
-    mouseStartX = e.clientX;
-    baseTransform = getTranslate();
-    track.classList.add('dragging');
-  });
-  window.addEventListener('mousemove', (e) => {
-    if (!mouseDown) return;
-    const dx = e.clientX - mouseStartX;
-    track.style.transform = `translateX(${baseTransform + dx}px)`;
-  });
-  window.addEventListener('mouseup', (e) => {
-    if (!mouseDown) return;
-    mouseDown = false;
-    track.classList.remove('dragging');
-    const dx = e.clientX - mouseStartX;
-    if (dx <= -40) agendaSetIndex(AGENDA_CURRENT_IDX + 1, true);
-    else if (dx >= 40) agendaSetIndex(AGENDA_CURRENT_IDX - 1, true);
-    else agendaSetIndex(AGENDA_CURRENT_IDX, true);
-  });
-
-  // Re-center on resize
-  window.addEventListener('resize', () => {
-    if (CURRENT_VIEW === 'agenda') agendaSetIndex(AGENDA_CURRENT_IDX, false);
-  });
 }
 
 function buildAgendaCard(date, iso, items) {
