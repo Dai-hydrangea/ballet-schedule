@@ -89,6 +89,135 @@
     gap: 6px;
     min-width: 0;
   }
+
+  /* View mode toggle (月間 / 予定がある日) */
+  .view-mode-toggle {
+    display: flex;
+    background: var(--accent-soft);
+    border-radius: 999px;
+    padding: 3px;
+    margin: 4px auto 0;
+    width: fit-content;
+  }
+  .view-mode-btn {
+    background: none;
+    border: none;
+    padding: 4px 14px;
+    font-size: 11px;
+    color: var(--accent-deep);
+    font-family: inherit;
+    cursor: pointer;
+    border-radius: 999px;
+    font-weight: 500;
+  }
+  .view-mode-btn.active {
+    background: var(--accent);
+    color: white;
+  }
+
+  /* Agenda carousel (horizontal scrolling cards, one per day with events) */
+  .agenda-carousel {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    gap: 10px;
+    padding: 10px 12px 14px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-soft) transparent;
+  }
+  .agenda-carousel::-webkit-scrollbar { height: 6px; }
+  .agenda-carousel::-webkit-scrollbar-thumb {
+    background: var(--accent-soft);
+    border-radius: 3px;
+  }
+  .agenda-card {
+    flex: 0 0 86vw;
+    max-width: 420px;
+    scroll-snap-align: center;
+    background: var(--card);
+    border: 1.5px solid var(--line);
+    border-radius: 14px;
+    padding: 12px 14px;
+    box-shadow: 0 2px 12px rgba(232, 138, 165, 0.08);
+    cursor: pointer;
+    transition: transform 0.12s;
+  }
+  .agenda-card:active { transform: scale(0.98); }
+  .agenda-card.today {
+    border-color: var(--accent);
+    border-width: 2px;
+    box-shadow: 0 4px 16px rgba(232, 138, 165, 0.18);
+  }
+  .agenda-head {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    padding-bottom: 8px;
+    border-bottom: 1.5px solid var(--line-soft);
+    margin-bottom: 8px;
+  }
+  .agenda-num {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--accent-deep);
+    font-variant-numeric: tabular-nums;
+    font-family: 'Quicksand', 'M PLUS Rounded 1c', sans-serif;
+  }
+  .agenda-head.sun .agenda-num { color: var(--sun); }
+  .agenda-head.sat .agenda-num { color: var(--sat); }
+  .agenda-wd { font-size: 13px; color: var(--muted); }
+  .agenda-today-mark {
+    font-size: 10px;
+    color: var(--accent);
+    font-weight: 600;
+    margin-left: 4px;
+  }
+  .agenda-count {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--accent-deep);
+    background: var(--accent-soft);
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-weight: 600;
+  }
+  .agenda-event-list { display: flex; flex-direction: column; gap: 4px; }
+  .agenda-event {
+    background: var(--studio-bg);
+    border-left: 4px solid var(--studio-color);
+    border-radius: 8px;
+    padding: 6px 10px;
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 8px;
+    align-items: center;
+  }
+  .ae-time {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent-deep);
+    font-variant-numeric: tabular-nums;
+  }
+  .ae-label { font-size: 13px; font-weight: 500; color: var(--fg); }
+  .ae-meta { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .agenda-note {
+    margin-top: 6px;
+    font-size: 10px;
+    color: var(--muted);
+    background: #fafaf9;
+    border-radius: 6px;
+    padding: 4px 8px;
+  }
+  .agenda-empty {
+    text-align: center;
+    padding: 40px 16px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  @media (min-width: 600px) {
+    .agenda-card { flex: 0 0 60vw; max-width: 360px; }
+  }
   .month-nav button {
     background: var(--card);
     border: 1.5px solid var(--accent-soft);
@@ -1226,6 +1355,10 @@
       <button class="pill-btn menu-btn" id="menu-toggle" aria-label="メニュー">＋ メニュー</button>
     </div>
   </div>
+  <div class="view-mode-toggle">
+    <button class="view-mode-btn active" data-view="month">月間</button>
+    <button class="view-mode-btn" data-view="agenda">予定がある日だけ</button>
+  </div>
 </header>
 <div id="news-banner" hidden></div>
 </div>
@@ -1273,6 +1406,7 @@
 <main>
   <div class="cal-head-row" id="cal-head-row"></div>
   <div class="cal-grid" id="cal-grid"></div>
+  <div class="agenda-carousel" id="agenda-carousel" hidden></div>
 </main>
 
 <footer>
@@ -1507,6 +1641,7 @@ async function bootstrap() {
     bindAddModal();
     bindTplModal();
     bindNewsModal();
+    bindViewToggle();
     renderCalendarHeads();
 
     const initialMonth = pickInitialMonth();
@@ -1798,8 +1933,110 @@ function isAllDay(it) {
   return s === 0 && e >= 23 * 60;
 }
 
+let CURRENT_VIEW = 'month';
+
+function bindViewToggle() {
+  document.querySelectorAll('.view-mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const view = btn.dataset.view;
+      if (view === CURRENT_VIEW) return;
+      CURRENT_VIEW = view;
+      document.querySelectorAll('.view-mode-btn').forEach(b => b.classList.toggle('active', b === btn));
+      render();
+    });
+  });
+}
+
 function render() {
-  renderCalendar();
+  const monthMode = CURRENT_VIEW === 'month';
+  document.getElementById('cal-head-row').hidden = !monthMode;
+  document.getElementById('cal-grid').hidden = !monthMode;
+  document.getElementById('agenda-carousel').hidden = monthMode;
+  if (monthMode) renderCalendar();
+  else renderAgenda();
+}
+
+function renderAgenda() {
+  const root = document.getElementById('agenda-carousel');
+  root.innerHTML = '';
+
+  const { dates } = buildMonthDates();
+  const days = [];
+  for (const d of dates) {
+    const iso = isoLocal(d);
+    const items = eventsForDate(iso).filter(passesFilter);
+    if (items.length > 0) days.push({ date: d, iso, items });
+  }
+
+  if (days.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'agenda-empty';
+    empty.textContent = 'この月は予定なし';
+    root.appendChild(empty);
+    return;
+  }
+
+  for (const { date, iso, items } of days) {
+    root.appendChild(buildAgendaCard(date, iso, items));
+  }
+
+  // Scroll the "today" card (or first card) into center on render
+  const todayCard = root.querySelector('.agenda-card.today') || root.firstChild;
+  if (todayCard) {
+    requestAnimationFrame(() => {
+      todayCard.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' });
+    });
+  }
+}
+
+function buildAgendaCard(date, iso, items) {
+  const card = document.createElement('div');
+  card.className = 'agenda-card';
+  if (iso === TODAY_ISO) card.classList.add('today');
+
+  const wd = date.getDay();
+  const wdClass = wd === 0 ? ' sun' : wd === 6 ? ' sat' : '';
+
+  const head = document.createElement('div');
+  head.className = 'agenda-head' + wdClass;
+  head.innerHTML = `
+    <span class="agenda-num">${date.getMonth()+1}/${date.getDate()}</span>
+    <span class="agenda-wd">(${WEEKDAY_JP[wd]})</span>
+    ${iso === TODAY_ISO ? '<span class="agenda-today-mark">今日</span>' : ''}
+    <span class="agenda-count">${items.length} 件</span>
+  `;
+  card.appendChild(head);
+
+  const list = document.createElement('div');
+  list.className = 'agenda-event-list';
+  items.sort((a,b) => (a.start||'').localeCompare(b.start||''));
+  for (const ev of items) {
+    const studio = META.studios[ev.studio];
+    const row = document.createElement('div');
+    row.className = 'agenda-event';
+    row.style.setProperty('--studio-color', studio.color);
+    row.style.setProperty('--studio-bg', studio.bg);
+    row.innerHTML = `
+      <div class="ae-time">${ev.start}–${ev.end}</div>
+      <div>
+        <div class="ae-label">${escapeHtml(ev.label)}</div>
+        <div class="ae-meta">${escapeHtml(studio.name)}${ev.target ? ' · ' + escapeHtml(ev.target) : ''}</div>
+      </div>
+    `;
+    list.appendChild(row);
+  }
+  card.appendChild(list);
+
+  const withNotes = items.filter(it => it.note);
+  if (withNotes.length > 0) {
+    const note = document.createElement('div');
+    note.className = 'agenda-note';
+    note.textContent = withNotes.map(it => `※ ${it.label}: ${it.note}`).join('  /  ');
+    card.appendChild(note);
+  }
+
+  card.addEventListener('click', () => openDaySheet(date));
+  return card;
 }
 
 function renderCalendarHeads() {
