@@ -2221,12 +2221,17 @@ function agendaSetIndex(idx, animate = true) {
   updateAgendaNavButtons(safe, cards.length);
 }
 
+const AGENDA_INERTIA_MS = 220;   // ms of motion the flick "carries"
+const AGENDA_MAX_STEPS = 5;      // hard cap on cards per single gesture
+const AGENDA_DRAG_THRESHOLD = 30;// px before we commit to a horizontal drag
+
 function bindAgendaPager() {
   const viewport = document.getElementById('agenda-viewport');
   const track = document.getElementById('agenda-carousel');
 
   let startX = null;
   let startY = null;
+  let startT = 0;
   let baseTransform = 0;
   let dragging = false;
   let horizontal = false;
@@ -2240,10 +2245,33 @@ function bindAgendaPager() {
     return parts.length === 6 ? parts[4] : parts[12];
   }
 
+  function cardWidthWithGap() {
+    const first = track.querySelector('.agenda-card');
+    if (!first) return 1;
+    return first.getBoundingClientRect().width + 10; // 10px gap
+  }
+
+  function commitDrag(dx, dt) {
+    if (Math.abs(dx) < AGENDA_DRAG_THRESHOLD) {
+      // Below threshold → spring back to current
+      agendaSetIndex(AGENDA_CURRENT_IDX, true);
+      return;
+    }
+    const velocity = dx / Math.max(dt, 1); // px/ms (signed)
+    const inertiaDx = velocity * AGENDA_INERTIA_MS;
+    const totalDx = dx + inertiaDx; // signed; positive = swipe right = go to past
+    const cw = cardWidthWithGap();
+    const rawSteps = Math.round(-totalDx / cw); // negative dx → positive idx step
+    const direction = rawSteps >= 0 ? 1 : -1;
+    const steps = Math.min(AGENDA_MAX_STEPS, Math.max(1, Math.abs(rawSteps)));
+    agendaSetIndex(AGENDA_CURRENT_IDX + direction * steps, true);
+  }
+
   viewport.addEventListener('touchstart', (e) => {
     if (e.touches.length !== 1) return;
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
+    startT = Date.now();
     baseTransform = getTranslate();
     dragging = true;
     horizontal = false;
@@ -2255,7 +2283,6 @@ function bindAgendaPager() {
     const dx = e.touches[0].clientX - startX;
     const dy = e.touches[0].clientY - startY;
     if (!horizontal && Math.abs(dx) < Math.abs(dy)) {
-      // Vertical wins → cancel drag, let page scroll
       dragging = false;
       track.classList.remove('dragging');
       track.style.transform = `translateX(${baseTransform}px)`;
@@ -2276,10 +2303,8 @@ function bindAgendaPager() {
       return;
     }
     const dx = e.changedTouches[0].clientX - startX;
-    const threshold = 40;
-    if (dx <= -threshold) agendaSetIndex(AGENDA_CURRENT_IDX + 1, true);
-    else if (dx >= threshold) agendaSetIndex(AGENDA_CURRENT_IDX - 1, true);
-    else agendaSetIndex(AGENDA_CURRENT_IDX, true);
+    const dt = Date.now() - startT;
+    commitDrag(dx, dt);
   });
 
   viewport.addEventListener('touchcancel', () => {
@@ -2292,9 +2317,11 @@ function bindAgendaPager() {
   // Mouse drag (PC)
   let mouseDown = false;
   let mouseStartX = 0;
+  let mouseStartT = 0;
   viewport.addEventListener('mousedown', (e) => {
     mouseDown = true;
     mouseStartX = e.clientX;
+    mouseStartT = Date.now();
     baseTransform = getTranslate();
     track.classList.add('dragging');
   });
@@ -2308,9 +2335,8 @@ function bindAgendaPager() {
     mouseDown = false;
     track.classList.remove('dragging');
     const dx = e.clientX - mouseStartX;
-    if (dx <= -40) agendaSetIndex(AGENDA_CURRENT_IDX + 1, true);
-    else if (dx >= 40) agendaSetIndex(AGENDA_CURRENT_IDX - 1, true);
-    else agendaSetIndex(AGENDA_CURRENT_IDX, true);
+    const dt = Date.now() - mouseStartT;
+    commitDrag(dx, dt);
   });
 
   // Re-center on resize
