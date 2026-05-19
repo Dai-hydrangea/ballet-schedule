@@ -47,6 +47,13 @@
     letter-spacing: 0.01em;
   }
 
+  .sticky-top {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: var(--card);
+    box-shadow: 0 2px 8px rgba(232, 138, 165, 0.06);
+  }
   header.app-head {
     padding: 6px 10px 8px;
     background: linear-gradient(180deg, #fff5f7 0%, var(--card) 100%);
@@ -1200,6 +1207,7 @@
 </head>
 <body>
 
+<div class="sticky-top">
 <header class="app-head">
   <div class="app-title-line">バレエスタジオ予定表</div>
   <div class="app-head-row">
@@ -1220,6 +1228,7 @@
   </div>
 </header>
 <div id="news-banner" hidden></div>
+</div>
 
 <!-- Hidden legacy buttons (kept so existing JS doesn't break) -->
 <button id="add-toggle" hidden></button>
@@ -1796,9 +1805,10 @@ function render() {
 function renderCalendarHeads() {
   const root = document.getElementById('cal-head-row');
   root.innerHTML = '';
-  ['日','月','火','水','木','金','土'].forEach((w, i) => {
+  // 月曜始まり: 月火水木金土日 (土と日が右側にまとまる)
+  ['月','火','水','木','金','土','日'].forEach((w, i) => {
     const h = document.createElement('div');
-    h.className = 'cal-head' + (i === 0 ? ' sun' : i === 6 ? ' sat' : '');
+    h.className = 'cal-head' + (i === 5 ? ' sat' : i === 6 ? ' sun' : '');
     h.textContent = w;
     root.appendChild(h);
   });
@@ -1809,7 +1819,9 @@ function renderCalendar() {
   root.innerHTML = '';
   const { first, dates } = buildMonthDates();
 
-  for (let i = 0; i < first.getDay(); i++) {
+  // 月曜始まり: 月=0, 火=1, ..., 日=6
+  const offset = (first.getDay() + 6) % 7;
+  for (let i = 0; i < offset; i++) {
     const empty = document.createElement('div');
     empty.className = 'cal-cell empty';
     root.appendChild(empty);
